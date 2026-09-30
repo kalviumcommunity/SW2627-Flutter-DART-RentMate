@@ -1,16 +1,62 @@
-# Backend Schema Design — RentFlow
+# RentMate Backend Schema
 
-**Project:** RentFlow — Event Equipment Rental Management Application  
-**Team:** Squad 124 | Team 04 | JECRC  
-**Author:** Prateek  
-**Status:** In Progress (Sprint 2 Planning Phase)
+## Collections
 
----
+### users/{userId}
+- name: string
+- email: string
+- role: coordinator | warehouse | admin
+- active: boolean
 
-## 1. Planned Collections (Cloud Firestore)
-- `users`: User profiles and organizational roles (`admin`, `coordinator`, `warehouse`).
-- `equipment`: Inventory items (item ID, name, category, total quantity, status, serial/asset tags).
-- `bookings`: Reservations (event date range, client info, list of reserved equipment items with quantities, reservation status).
-- `dispatches`: Warehouse manifests (booking ID, scheduled dispatch timestamp, loaded checklist, return verification).
+### equipment/{equipmentId}
+- name: string
+- sku: string
+- category: string
+- totalQuantity: number
+- rentableQuantity: number
+- active: boolean
+- condition: string
 
-*(Detailed entity definitions, validation rules, and indexes are being authored by Prateek).*
+### bookings/{bookingId}
+- eventName: string
+- customerName: string
+- phoneNumber: string
+- venue: string
+- eventType: string
+- startAt: timestamp
+- endAt: timestamp
+- items: [{equipmentId, quantity, unitPrice}]
+- estimatedTotal: number
+- status: draft | confirmed | dispatched | partially_returned | returned | cancelled
+- createdBy: string
+- createdAt: timestamp
+
+### dispatches/{dispatchId}
+- bookingId: string
+- status: scheduled | packing | loaded
+- items: [{equipmentId, requiredQuantity, packedQuantity}]
+- loadedAt: timestamp
+- loadedBy: string
+
+### returns/{returnId}
+- bookingId: string
+- dispatchId: string
+- items: [{equipmentId, returnedQuantity, damagedQuantity, missingQuantity}]
+- recordedBy: string
+- returnedAt: timestamp
+
+## Relationships
+- users → create/manage bookings
+- bookings → contain equipment items
+- bookings → have dispatches
+- dispatches → have returns
+- equipment → referenced by bookings and dispatches
+
+## Business Rules
+1. Start time must be before end time.
+2. Quantities must be positive.
+3. Cancelled bookings do not reserve stock.
+4. Check overlapping bookings before confirmation.
+5. Confirm reservations atomically to prevent double booking.
+6. Only verified, rentable returns increase available stock.
+7. Only authorized users can modify inventory and dispatches.

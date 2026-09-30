@@ -1,36 +1,39 @@
-# Implementation Plan — RentFlow
+# RentMate Implementation Plan
 
-**Project:** RentFlow — Event Equipment Rental Management Application  
-**Team:** Squad 124 | Team 04 | JECRC  
-**Author:** Prateek  
-**Status:** In Progress (Sprint 2 Planning Phase)
+## Phase 1: Project Setup
+- Configure Flutter and Dart.
+- Set up Firebase.
+- Create folder structure and navigation.
+- Apply RentMate theme.
 
----
+## Phase 2: Authentication
+- Implement splash and login screens.
+- Integrate Firebase Authentication.
+- Add role-based access.
 
-## 1. Project Phase Breakdown
-- **Phase 1: Project Scaffolding & Git Setup (Day 1 — Completed by Mayank)**
-  - Flutter workspace initialization
-  - Clean layered directory architecture (`core/`, `screens/`, `widgets/`, `models/`, `services/`)
-  - RentFlow branded Day-1 application shell
-  - Feature branch setup (`feature/flutter-scaffold`)
-  - Day-1 validation & automated smoke tests passing
+## Phase 3: Dashboard and Bookings
+- Build coordinator dashboard.
+- Implement booking list, search and filters.
+- Create the event details form.
 
-- **Phase 2: Planning & Specification (Day 1/2 — In Progress by Prateek)**
-  - Product Requirements Document (PRD)
-  - Technical Requirements Document (TRD) & System Architecture
-  - Application Navigation & State Flow (App Flow)
-  - Cloud Firestore Schema Design & Index Planning
-  - Phased Sprint 2 Implementation Milestones
+## Phase 4: Inventory and Availability
+- Implement equipment listing and category filters.
+- Add quantity selection.
+- Implement overlapping booking and stock checks.
+- Build conflict resolution.
 
-- **Phase 3: Data Layer & Firebase Foundation (Upcoming)**
-  - Firebase Authentication integration
-  - Cloud Firestore collections & data service classes
-  - Equipment model serialization & deserialization
+## Phase 5: Booking Confirmation
+- Build booking review screen.
+- Implement atomic booking confirmation.
+- Display booking status and estimate.
 
-- **Phase 4: Feature Implementation (Upcoming)**
-  - Equipment catalog listing & real-time search
-  - Reservation creation & booking date range picker
-  - Real-time double-booking conflict detection engine
-  - Warehouse dispatch manifests & loading checklist verification
+## Phase 6: Dispatch and Returns
+- Build dispatch checklist.
+- Implement packing progress and loading.
+- Implement returns and inventory reconciliation.
 
-*(Detailed timeline, task estimates, and validation gates are being authored by Prateek).*
+## Phase 7: Testing and Deployment
+- Write unit, widget and integration tests.
+- Test concurrent booking conflicts.
+- Configure security rules.
+- Build and test the Android app.

@@ -1,0 +1,9 @@
+# Global repository code owners
+# Automatically requests review from team members when a Pull Request is opened.
+# 
+# Team:
+# - Mayank Sharma (@MayankSharma-2812)
+# - Prateek Verma (@Prateekverma11)
+
+# Default code owners for all files in the repository
+* @MayankSharma-2812 @Prateekverma11

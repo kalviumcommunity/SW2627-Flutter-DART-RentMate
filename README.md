@@ -63,13 +63,6 @@ SW2627-Flutter-DART-RentMate/
 ├── windows/                     # Windows desktop platform files
 ├── test/
 │   └── widget_test.dart         # Automated smoke & widget tests
-├── docs/                        # Planning, specifications, and architecture
-│   ├── PRD.md                   # Product Requirements Document (Prateek)
-│   ├── TRD.md                   # Technical Requirements Document (Prateek)
-│   ├── APP_FLOW.md              # Application Flow diagrams & screens (Prateek)
-│   ├── BACKEND_SCHEMA.md        # Firestore schema & entity models (Prateek)
-│   ├── IMPLEMENTATION_PLAN.md   # Sprint 2 roadmap & execution plan (Prateek)
-│   └── learning/                # Local-only pedagogical notes (ignored in git)
 └── lib/
     ├── core/                    # Core application foundation
     │   ├── constants/           # Centralized constants & app identity

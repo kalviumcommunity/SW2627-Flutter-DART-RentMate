@@ -46,11 +46,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
   void _onNavTap(int index) {
     if (index == 0) {
       Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
-    } else if (index == 2 || index == 3) {
-      final name = index == 2 ? 'Inventory' : 'Dispatch';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$name module is owned by Prateek.')),
-      );
+    } else if (index == 2) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.inventory);
+    } else if (index == 3) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.dispatch);
     } else {
       setState(() => _currentNavIndex = index);
     }
@@ -101,13 +100,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'New Booking wizard is part of Prateek’s create_booking feature.',
-              ),
-            ),
-          );
+          Navigator.of(context).pushNamed(AppRoutes.createBooking);
         },
         backgroundColor: AppColors.alpineEvergreen,
         foregroundColor: Colors.white,

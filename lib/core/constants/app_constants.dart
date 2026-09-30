@@ -1,26 +1,31 @@
 /// Application-wide constants for RentFlow.
 ///
 /// Dart Concept:
-/// - `class AppConstants`: A container class with a private constructor
-///   (`AppConstants._()`) to prevent instantiation. In Dart, this is the
-///   idiomatic way to create a static utility or constants namespace.
-/// - `static const`: Compile-time constants. Dart allocates them once at
-///   compile time, making them memory-efficient and immutable.
+/// - `abstract final class`: Pure static utility container; prevents instantiation.
+/// - `static const`: Compile-time constants that save runtime memory.
 abstract final class AppConstants {
-  // Prevent instantiation
   AppConstants._();
 
   // Application Identity
   static const String appName = 'RentFlow';
-  static const String appTagline = 'Event Equipment Rental Management';
-  static const String appVersion = '1.0.0 (Sprint 2 - Day 1)';
+  static const String appTagline = 'Event Equipment Operations';
+  static const String appMotto = 'Equipment. Events. Effortless.';
+  static const String appVersion = 'v1.0-alpha';
 
   // Team & Project Details
   static const String squadNumber = 'Squad 124';
   static const String teamNumber = 'Team 04';
   static const String campusName = 'JECRC';
-  static const String memberMayank = 'Mayank Sharma (Flutter Scaffolding & Git)';
-  static const String memberPrateek = 'Prateek (System Design & Planning)';
+  static const String coordinatorName = 'Mayank Sharma';
+  static const String coordinatorRole = 'Lead Event Coordinator';
+
+  // Booking & Inventory Statuses
+  static const String statusConfirmed = 'Confirmed';
+  static const String statusInProgress = 'In Progress';
+  static const String statusPacking = 'Packing';
+  static const String statusPending = 'Pending';
+  static const String statusCompleted = 'Completed';
+  static const String statusConflict = 'Conflict';
 
   // Equipment Categories handled by RentFlow
   static const List<String> equipmentCategories = [
@@ -29,6 +34,10 @@ abstract final class AppConstants {
     'Event Furniture',
   ];
 
-  // Current Sprint Scope Note
-  static const String sprintStatus = 'Sprint 2 — Day 1: Foundation & Scaffolding';
+  // Spacing & Layout Tokens (Responsive standards)
+  static const double screenPaddingH = 16.0;
+  static const double screenPaddingV = 16.0;
+  static const double cardRadius = 14.0;
+  static const double inputRadius = 10.0;
+  static const double buttonRadius = 10.0;
 }

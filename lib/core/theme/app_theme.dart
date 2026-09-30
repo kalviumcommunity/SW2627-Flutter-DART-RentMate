@@ -1,57 +1,118 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 
-/// Centralized application theme for RentFlow.
+/// Centralized ThemeData definition for RentFlow.
 ///
 /// Flutter Concept:
-/// - `ThemeData`: Defines the visual look and feel (colors, typography, shapes)
-///   for all Material widgets in the app.
-/// - `ColorScheme.fromSeed`: Automatically derives a harmonious tonal palette
-///   from a single primary seed color adhering to Material 3 design rules.
-/// - `final class`: Ensures this class cannot be extended or implemented outside
-///   this library, maintaining architectural boundaries.
+/// Sets up the entire Material 3 design system for the app so standard widgets
+/// (`Scaffold`, `Card`, `ElevatedButton`, `TextField`, `BottomNavigationBar`)
+/// automatically inherit RentFlow's brand palette without inline styling.
 final class AppTheme {
   AppTheme._();
 
-  // Brand Palette: Deep Industrial Navy & Energetic Teal
-  static const Color primarySeed = Color(0xFF1E3A8A); // Deep Slate Navy
-  static const Color accentTeal = Color(0xFF0D9488); // Professional Teal
-  static const Color surfaceLight = Color(0xFFF8FAFC); // Crisp Off-White
-  static const Color cardLight = Colors.white;
-
-  /// Light theme definition used throughout RentFlow.
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primarySeed,
+      scaffoldBackgroundColor: AppColors.warmIvory,
+      colorScheme: const ColorScheme(
         brightness: Brightness.light,
-        primary: primarySeed,
-        secondary: accentTeal,
-        surface: surfaceLight,
+        primary: AppColors.alpineEvergreen,
+        onPrimary: Colors.white,
+        secondary: AppColors.industrialAmber,
+        onSecondary: Colors.white,
+        error: AppColors.hazardCrimson,
+        onError: Colors.white,
+        surface: AppColors.warmIvory,
+        onSurface: AppColors.textPrimary,
+        outline: AppColors.structuralBorder,
       ),
-      scaffoldBackgroundColor: surfaceLight,
-      appBarTheme: const AppBarTheme(
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: primarySeed,
-        foregroundColor: Colors.white,
-        titleTextStyle: TextStyle(
-          fontSize: 20,
+        backgroundColor: AppColors.warmIvory,
+        foregroundColor: AppColors.forestObsidian,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-          color: Colors.white,
+          color: AppColors.forestObsidian,
+          letterSpacing: -0.3,
         ),
       ),
       cardTheme: CardThemeData(
-        color: cardLight,
+        color: AppColors.pureWhite,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           side: const BorderSide(
-            color: Color(0xFFE2E8F0),
+            color: AppColors.borderSubtle,
             width: 1,
           ),
         ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.pureWhite,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.structuralBorder, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.structuralBorder, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.alpineEvergreen, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.hazardCrimson, width: 1),
+        ),
+        hintStyle: GoogleFonts.plusJakartaSans(
+          color: AppColors.textMuted,
+          fontSize: 14,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: AppColors.alpineEvergreen,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          elevation: 0,
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size.fromHeight(48),
+          side: const BorderSide(color: AppColors.structuralBorder, width: 1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderSubtle,
+        thickness: 1,
+        space: 1,
       ),
     );
   }

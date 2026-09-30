@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../screens/bookings/bookings_screen.dart';
+import '../../screens/create_booking/create_booking_screen.dart';
 import '../../screens/dashboard/dashboard_screen.dart';
+import '../../screens/dispatch/dispatch_screen.dart';
 import '../../screens/home_screen.dart';
+import '../../screens/inventory/inventory_screen.dart';
 import '../../screens/login/login_screen.dart';
 import '../../screens/splash/splash_screen.dart';
 
@@ -19,6 +22,9 @@ final class AppRoutes {
   static const String login = '/login';
   static const String dashboard = '/dashboard';
   static const String bookings = '/bookings';
+  static const String createBooking = '/create-booking';
+  static const String inventory = '/inventory';
+  static const String dispatch = '/dispatch';
   static const String scaffoldHome = '/scaffold-home';
 
   /// Table of available application routes.
@@ -27,6 +33,9 @@ final class AppRoutes {
         login: (context) => const LoginScreen(),
         dashboard: (context) => const DashboardScreen(),
         bookings: (context) => const BookingsScreen(),
+        createBooking: (context) => const CreateBookingScreen(),
+        inventory: (context) => const InventoryScreen(),
+        dispatch: (context) => const DispatchScreen(),
         scaffoldHome: (context) => const HomeScreen(),
       };
 }

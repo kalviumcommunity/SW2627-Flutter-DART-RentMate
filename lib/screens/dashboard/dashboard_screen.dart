@@ -29,16 +29,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onNavTap(int index) {
     if (index == 1) {
-      Navigator.of(context).pushNamed(AppRoutes.bookings);
-    } else if (index == 2 || index == 3) {
-      // Prateek's upcoming feature scope notice
-      final featureName = index == 2 ? 'Inventory Module' : 'Warehouse Dispatch';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$featureName is currently in specification by Prateek.'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      Navigator.of(context).pushReplacementNamed(AppRoutes.bookings);
+    } else if (index == 2) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.inventory);
+    } else if (index == 3) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.dispatch);
     } else {
       setState(() => _currentNavIndex = index);
     }
@@ -187,11 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   subtitle: '2 packing now',
                   icon: Icons.local_shipping_rounded,
                   accentColor: AppColors.industrialAmber,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Dispatch manifests module in progress.')),
-                    );
-                  },
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.dispatch),
                 ),
                 const SizedBox(width: 10),
                 MetricCard(
@@ -221,22 +212,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: 'Check Stock',
                   icon: Icons.inventory_2_rounded,
                   color: AppColors.forestObsidian,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Inventory lookup will connect to Firestore.')),
-                    );
-                  },
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.inventory),
                 ),
                 const SizedBox(width: 10),
                 QuickActionCard(
                   label: 'Dispatch Doc',
                   icon: Icons.receipt_long_rounded,
                   color: AppColors.industrialAmber,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Manifest loading dock screen upcoming.')),
-                    );
-                  },
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.dispatch),
                 ),
               ],
             ),

@@ -273,10 +273,15 @@ class EquipmentConflictScreen extends StatelessWidget {
             // Action 1: Reduce Quantity
             _buildResolutionCard(
               context: context,
-              title: 'Reduce Quantity to $availableQuantity Units',
-              description:
-                  'Instantly adjust the booking request to match currently available warehouse stock.',
-              icon: Icons.compress_rounded,
+              title: availableQuantity > 0
+                  ? 'Reduce Quantity to $availableQuantity Units'
+                  : 'Remove Item (0 Units Available)',
+              description: availableQuantity > 0
+                  ? 'Instantly adjust the booking request to match currently available warehouse stock.'
+                  : 'Remove this unavailable equipment piece from the current booking draft.',
+              icon: availableQuantity > 0
+                  ? Icons.compress_rounded
+                  : Icons.delete_outline_rounded,
               accentColor: AppColors.alpineEvergreen,
               isPrimary: true,
               onTap: () {

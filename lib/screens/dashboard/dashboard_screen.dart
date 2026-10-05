@@ -160,7 +160,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 description:
                     '${conflictBookings.first.eventName}: ${conflictBookings.first.conflictDetails ?? "Equipment double-booked across overlapping dates."}',
                 onResolveTap: () {
-                  Navigator.of(context).pushNamed(AppRoutes.bookings);
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.bookings,
+                    arguments: AppConstants.statusConflict,
+                  );
                 },
               ),
 
@@ -191,7 +194,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   subtitle: 'Action required',
                   icon: Icons.warning_amber_rounded,
                   accentColor: AppColors.hazardCrimson,
-                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.bookings),
+                  onTap: () => Navigator.of(context).pushNamed(
+                    AppRoutes.bookings,
+                    arguments: AppConstants.statusConflict,
+                  ),
                 ),
               ],
             ),

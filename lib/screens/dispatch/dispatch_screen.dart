@@ -64,9 +64,12 @@ class _DispatchScreenState extends State<DispatchScreen> {
     }
   }
 
-  void _togglePacked(int index, bool newValue) {
+  void _togglePacked(String itemId, bool newValue) {
     setState(() {
-      _items[index] = _items[index].copyWith(isPacked: newValue);
+      final index = _items.indexWhere((it) => it.id == itemId);
+      if (index != -1) {
+        _items[index] = _items[index].copyWith(isPacked: newValue);
+      }
     });
   }
 
@@ -356,13 +359,9 @@ class _DispatchScreenState extends State<DispatchScreen> {
                   else
                     ...List.generate(filtered.length, (idx) {
                       final item = filtered[idx];
-                      final originalIndex =
-                          _items.indexWhere((it) => it.id == item.id);
-
                       return DispatchChecklistTile(
                         item: item,
-                        onTogglePacked: (val) =>
-                            _togglePacked(originalIndex, val),
+                        onTogglePacked: (val) => _togglePacked(item.id, val),
                       );
                     }),
                 ],

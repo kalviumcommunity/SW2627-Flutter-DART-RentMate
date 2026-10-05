@@ -16,7 +16,9 @@ import '../../widgets/navigation/rentflow_bottom_nav.dart';
 /// - FloatingActionButton: Material action button with clear visual hierarchy.
 /// - Empty state handling: Clean operational feedback when no results match filter.
 class BookingsScreen extends StatefulWidget {
-  const BookingsScreen({super.key});
+  final String? initialFilter;
+
+  const BookingsScreen({super.key, this.initialFilter});
 
   @override
   State<BookingsScreen> createState() => _BookingsScreenState();
@@ -36,6 +38,23 @@ class _BookingsScreenState extends State<BookingsScreen> {
     AppConstants.statusInProgress,
     AppConstants.statusCompleted,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialFilter != null && _filterOptions.contains(widget.initialFilter)) {
+      _selectedFilter = widget.initialFilter!;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && _filterOptions.contains(args)) {
+      _selectedFilter = args;
+    }
+  }
 
   @override
   void dispose() {
@@ -81,7 +100,13 @@ class _BookingsScreenState extends State<BookingsScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+            }
+          },
         ),
         actions: [
           IconButton(

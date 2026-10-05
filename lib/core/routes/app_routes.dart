@@ -32,7 +32,11 @@ final class AppRoutes {
         splash: (context) => const SplashScreen(),
         login: (context) => const LoginScreen(),
         dashboard: (context) => const DashboardScreen(),
-        bookings: (context) => const BookingsScreen(),
+        bookings: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final initialFilter = args is String ? args : null;
+          return BookingsScreen(initialFilter: initialFilter);
+        },
         createBooking: (context) => const CreateBookingScreen(),
         inventory: (context) => const InventoryScreen(),
         dispatch: (context) => const DispatchScreen(),

@@ -52,7 +52,7 @@ class ConflictAlertCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '$conflictCount Equipment Conflict Detected',
+                  '$conflictCount Equipment Conflict${conflictCount > 1 ? "s" : ""} Detected',
                   style: AppTextStyles.cardTitle.copyWith(
                     color: AppColors.hazardCrimson,
                     fontWeight: FontWeight.w700,

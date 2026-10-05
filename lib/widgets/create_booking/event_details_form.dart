@@ -53,6 +53,28 @@ class _EventDetailsFormState extends State<EventDetailsForm> {
   }
 
   @override
+  void didUpdateWidget(covariant EventDetailsForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.draft != oldWidget.draft) {
+      if (_eventNameController.text != widget.draft.eventName) {
+        _eventNameController.text = widget.draft.eventName;
+      }
+      if (_customerNameController.text != widget.draft.customerName) {
+        _customerNameController.text = widget.draft.customerName;
+      }
+      if (_phoneController.text != widget.draft.phoneNumber) {
+        _phoneController.text = widget.draft.phoneNumber;
+      }
+      if (_venueController.text != widget.draft.venue) {
+        _venueController.text = widget.draft.venue;
+      }
+      if (_notesController.text != widget.draft.notes) {
+        _notesController.text = widget.draft.notes;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _eventNameController.dispose();
     _customerNameController.dispose();

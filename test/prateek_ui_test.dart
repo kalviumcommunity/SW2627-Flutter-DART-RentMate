@@ -173,4 +173,42 @@ void main() {
     expect(find.text('Packed (4)'), findsOneWidget);
     expect(find.text('Pending (2)'), findsOneWidget);
   });
+
+  testWidgets('Fill Sample populates EventDetailsForm input fields and syncs state',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const CreateBookingScreen(),
+      ),
+    );
+
+    // Initial state: empty event name
+    expect(find.text('Starlight Gala Evening'), findsNothing);
+
+    // Tap Fill Sample and pump past SnackBar duration
+    await tester.tap(find.text('Fill Sample'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    // Verify form fields received values from sample draft via didUpdateWidget
+    expect(find.text('Starlight Gala Evening'), findsOneWidget);
+    expect(find.text('Aarav Mehta'), findsOneWidget);
+    expect(find.text('+91 98290 44556'), findsOneWidget);
+    expect(find.text('Fairmont Palace Ballroom, Jaipur'), findsOneWidget);
+
+    // Form can progress directly to step 2 without validation errors
+    await tester.tap(find.text('Next: Select Equipment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('JBL Line Array VRX932'), findsOneWidget);
+  });
 }

@@ -84,31 +84,6 @@ class _EventDetailsFormState extends State<EventDetailsForm> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(covariant EventDetailsForm oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.draft.eventName != _eventNameController.text &&
-        widget.draft.eventName != oldWidget.draft.eventName) {
-      _eventNameController.text = widget.draft.eventName;
-    }
-    if (widget.draft.customerName != _customerNameController.text &&
-        widget.draft.customerName != oldWidget.draft.customerName) {
-      _customerNameController.text = widget.draft.customerName;
-    }
-    if (widget.draft.phoneNumber != _phoneController.text &&
-        widget.draft.phoneNumber != oldWidget.draft.phoneNumber) {
-      _phoneController.text = widget.draft.phoneNumber;
-    }
-    if (widget.draft.venue != _venueController.text &&
-        widget.draft.venue != oldWidget.draft.venue) {
-      _venueController.text = widget.draft.venue;
-    }
-    if (widget.draft.notes != _notesController.text &&
-        widget.draft.notes != oldWidget.draft.notes) {
-      _notesController.text = widget.draft.notes;
-    }
-  }
-
   void _updateDraft() {
     widget.onDraftChanged(
       widget.draft.copyWith(

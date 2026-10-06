@@ -10,13 +10,13 @@ import 'package:rentflow/widgets/dashboard/conflict_alert_card.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
 
 void main() {
-  testWidgets('Splash screen launches with RentFlow brand identity',
+  testWidgets('RentFlowApp launches with Login screen as initial route',
       (WidgetTester tester) async {
     await tester.pumpWidget(const RentFlowApp());
 
-    // Verify brand title and motto appear on splash
-    expect(find.text(AppConstants.appName), findsOneWidget);
-    expect(find.text(AppConstants.appMotto), findsOneWidget);
+    // Verify Login screen elements appear as initial route
+    expect(find.text('Welcome Back'), findsOneWidget);
+    expect(find.text('Sign In to Operations'), findsOneWidget);
   });
 
   testWidgets('Login screen renders authentication controls',

@@ -34,7 +34,7 @@ class RentFlowApp extends StatelessWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: AppRoutes.splash,
+      initialRoute: AppRoutes.login,
       routes: AppRoutes.routes,
     );
   }

@@ -38,11 +38,18 @@ class _LoginScreenState extends State<LoginScreen> {
   void _handleSignIn() {
     setState(() => _isLoading = true);
 
-    // Controlled transition into the coordinator dashboard (no Firebase yet)
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() => _isLoading = false);
-        Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Welcome back! Signed in as ${_emailController.text.isNotEmpty ? _emailController.text : "Coordinator"}.',
+            ),
+            backgroundColor: AppColors.alpineEvergreen,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     });
   }
@@ -227,27 +234,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // Request Access Entry Point
+                // Sign Up Entry Point
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'New warehouse or dispatch staff? ',
+                        "Don't have an account? ",
                         style: AppTextStyles.bodySmall,
                       ),
                       GestureDetector(
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Contact your Squad 124 administrator for role enrollment.',
-                              ),
-                            ),
-                          );
+                          Navigator.of(context).pushNamed(AppRoutes.signUp);
                         },
                         child: Text(
-                          'Request Access',
+                          'Sign Up',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.alpineEvergreen,
                             fontWeight: FontWeight.w700,

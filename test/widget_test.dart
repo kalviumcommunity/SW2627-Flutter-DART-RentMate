@@ -5,6 +5,8 @@ import 'package:rentflow/screens/login/login_screen.dart';
 import 'package:rentflow/screens/signup/signup_screen.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
 
+import 'package:rentflow/screens/dashboard/dashboard_screen.dart';
+
 void main() {
   testWidgets('RentFlowApp launches with Login screen as initial route',
       (WidgetTester tester) async {
@@ -73,7 +75,27 @@ void main() {
     expect(find.text('Sign In'), findsOneWidget);
   });
 
-  testWidgets('Navigation between Login and SignUp works correctly',
+  testWidgets('Dashboard renders Hello {user name} at left corner',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const DashboardScreen(userName: 'Mayank Sharma'),
+      ),
+    );
+
+    expect(find.text('Hello Mayank Sharma'), findsOneWidget);
+    expect(find.text('Active Bookings'), findsOneWidget);
+  });
+
+  testWidgets('Signing in navigates to dashboard and displays Hello {user name}',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -84,20 +106,38 @@ void main() {
 
     await tester.pumpWidget(const RentFlowApp());
 
-    // Click Sign Up on Login page
+    await tester.ensureVisible(find.text('Sign In to Operations'));
+    await tester.tap(find.text('Sign In to Operations'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 600));
+
+    expect(find.text('Hello Mayank'), findsOneWidget);
+  });
+
+  testWidgets('Signing up navigates to dashboard and displays Hello {user name}',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(const RentFlowApp());
+
+    // Navigate to Sign Up
     await tester.ensureVisible(find.text('Sign Up'));
     await tester.tap(find.text('Sign Up'));
     await tester.pumpAndSettle();
 
-    // Verify on Sign Up screen
-    expect(find.text('Create Account'), findsNWidgets(2));
-
-    // Click Sign In on Sign Up page
-    await tester.ensureVisible(find.text('Sign In'));
-    await tester.tap(find.text('Sign In'));
+    // Enter name in first text field (Full Name)
+    await tester.enterText(find.byType(TextField).first, 'Alex Rivera');
     await tester.pumpAndSettle();
 
-    // Verify back on Login screen
-    expect(find.text('Welcome Back'), findsOneWidget);
+    // Tap Create Account
+    await tester.ensureVisible(find.text('Create Account').last);
+    await tester.tap(find.text('Create Account').last);
+    await tester.pumpAndSettle(const Duration(milliseconds: 700));
+
+    expect(find.text('Hello Alex Rivera'), findsOneWidget);
   });
 }

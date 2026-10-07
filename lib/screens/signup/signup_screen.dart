@@ -60,18 +60,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (_formKey.currentState?.validate() ?? true) {
       setState(() => _isLoading = true);
 
-      // Controlled registration transition into dashboard
+      // Registration transition into dashboard
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Account created for ${_nameController.text.isNotEmpty ? _nameController.text : "Coordinator"}! Please sign in.'),
-              backgroundColor: AppColors.alpineEvergreen,
-              duration: const Duration(seconds: 3),
-            ),
+          final userName = _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : AppConstants.coordinatorName;
+
+          Navigator.of(context).pushReplacementNamed(
+            AppRoutes.dashboard,
+            arguments: userName,
           );
-          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
         }
       });
     }

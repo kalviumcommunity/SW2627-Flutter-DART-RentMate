@@ -41,14 +41,23 @@ class _LoginScreenState extends State<LoginScreen> {
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Welcome back! Signed in as ${_emailController.text.isNotEmpty ? _emailController.text : "Coordinator"}.',
-            ),
-            backgroundColor: AppColors.alpineEvergreen,
-            duration: const Duration(seconds: 3),
-          ),
+
+        final enteredText = _emailController.text.trim();
+        String userName = AppConstants.coordinatorName;
+        if (enteredText.isNotEmpty) {
+          if (enteredText.contains('@')) {
+            final part = enteredText.split('@').first;
+            userName = part.isNotEmpty
+                ? part[0].toUpperCase() + part.substring(1)
+                : AppConstants.coordinatorName;
+          } else {
+            userName = enteredText;
+          }
+        }
+
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.dashboard,
+          arguments: userName,
         );
       }
     });

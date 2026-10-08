@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 
-/// Standardized input field for RentFlow screens.
+/// Standardized input field for RentFlow (Industrial Atelier).
 ///
-/// Flutter & Dart Concepts Taught:
-/// - `TextFormField`: Form-integrated input with validation support.
-/// - `ValueChanged<String>? onChanged`: Callback typedef `void Function(String value)`.
-/// - `TextInputType`: Controls device keyboard type (e.g. email, phone, number).
+/// Features:
+/// - Crisp Paper surface fill with subtle Soft Stone border.
+/// - Burnt Copper active focus highlight.
+/// - Integrated validation messaging.
 class RentFlowTextField extends StatelessWidget {
   final String label;
   final String hintText;
@@ -41,9 +41,10 @@ class RentFlowTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTextStyles.bodySmall.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.inkBlack,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 6),
@@ -58,7 +59,11 @@ class RentFlowTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon, color: AppColors.textSecondary, size: 20)
+                ? Icon(
+                    prefixIcon,
+                    size: 19,
+                    color: AppColors.slate,
+                  )
                 : null,
             suffixIcon: suffixIcon,
           ),

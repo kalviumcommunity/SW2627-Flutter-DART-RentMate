@@ -2,115 +2,140 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Centralized ThemeData definition for RentFlow.
+/// Centralized ThemeData definition for RentFlow (Industrial Atelier).
 ///
-/// Flutter Concept:
-/// Sets up the entire Material 3 design system for the app so standard widgets
-/// (`Scaffold`, `Card`, `ElevatedButton`, `TextField`, `BottomNavigationBar`)
-/// automatically inherit RentFlow's brand palette without inline styling.
+/// Surfaces & Geometry:
+/// - Bone canvas background (#F3EEE5)
+/// - Paper elevated cards (#FAF7F0) with crisp 1px borders
+/// - Restrained radii (8-10px) reflecting precise event equipment flight-cases.
 final class AppTheme {
   AppTheme._();
 
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.warmIvory,
+      scaffoldBackgroundColor: AppColors.bone,
       colorScheme: const ColorScheme(
         brightness: Brightness.light,
-        primary: AppColors.alpineEvergreen,
+        primary: AppColors.burntCopper,
         onPrimary: Colors.white,
-        secondary: AppColors.industrialAmber,
-        onSecondary: Colors.white,
-        error: AppColors.hazardCrimson,
+        secondary: AppColors.agedBrass,
+        onSecondary: AppColors.inkBlack,
+        error: AppColors.danger,
         onError: Colors.white,
-        surface: AppColors.warmIvory,
-        onSurface: AppColors.textPrimary,
-        outline: AppColors.structuralBorder,
+        surface: AppColors.bone,
+        onSurface: AppColors.inkBlack,
+        outline: AppColors.softStone,
       ),
-      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      fontFamily: GoogleFonts.manrope().fontFamily,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: AppColors.warmIvory,
-        foregroundColor: AppColors.forestObsidian,
+        backgroundColor: AppColors.bone,
+        foregroundColor: AppColors.inkBlack,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: GoogleFonts.manrope(
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: AppColors.forestObsidian,
+          color: AppColors.inkBlack,
           letterSpacing: -0.3,
         ),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.pureWhite,
+        color: AppColors.paper,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
           side: const BorderSide(
-            color: AppColors.borderSubtle,
+            color: AppColors.softStone,
             width: 1,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.pureWhite,
+        fillColor: AppColors.paper,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.structuralBorder, width: 1),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.softStone,
+            width: 1,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.structuralBorder, width: 1),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.softStone,
+            width: 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.alpineEvergreen, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.burntCopper,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.hazardCrimson, width: 1),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.danger,
+            width: 1,
+          ),
         ),
-        hintStyle: GoogleFonts.plusJakartaSans(
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: AppColors.danger,
+            width: 1.5,
+          ),
+        ),
+        hintStyle: GoogleFonts.manrope(
           color: AppColors.textMuted,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+        labelStyle: GoogleFonts.manrope(
+          color: AppColors.slate,
           fontSize: 14,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: AppColors.alpineEvergreen,
+          backgroundColor: AppColors.burntCopper,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(48),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.manrope(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          elevation: 0,
-          foregroundColor: AppColors.textPrimary,
-          minimumSize: const Size.fromHeight(48),
-          side: const BorderSide(color: AppColors.structuralBorder, width: 1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+          foregroundColor: AppColors.inkBlack,
+          side: const BorderSide(
+            color: AppColors.softStone,
+            width: 1,
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          textStyle: GoogleFonts.manrope(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       dividerTheme: const DividerThemeData(
-        color: AppColors.borderSubtle,
+        color: AppColors.softStone,
         thickness: 1,
         space: 1,
       ),

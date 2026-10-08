@@ -2,92 +2,97 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Centralized typographic scale for RentFlow.
+/// Centralized typographic scale for RentFlow (Industrial Atelier).
 ///
 /// Typography Direction:
-/// - **Plus Jakarta Sans**: Primary UI text, headings, buttons, and navigation.
-/// - **JetBrains Mono**: Technical numbers, status metrics, and inventory quantities.
-///
-/// Flutter Concept:
-/// Using [GoogleFonts] provides pre-calibrated font metrics. If the device is
-/// offline during first launch, it gracefully falls back to the system sans-serif.
+/// - **Manrope**: Primary UI text, headings, buttons, and navigation.
+/// - **IBM Plex Mono**: Technical numbers, status metrics, and operational SKUs.
 abstract final class AppTextStyles {
   AppTextStyles._();
 
-  // Headings & Brand Text (Plus Jakarta Sans)
-  static TextStyle get brandTitle => GoogleFonts.plusJakartaSans(
+  // Primary Editorial Headings (Manrope)
+  static TextStyle get brandTitle => GoogleFonts.manrope(
         fontSize: 28,
         fontWeight: FontWeight.w800,
         letterSpacing: -0.6,
-        color: AppColors.forestObsidian,
+        color: AppColors.inkBlack,
       );
 
-  static TextStyle get screenTitle => GoogleFonts.plusJakartaSans(
+  static TextStyle get screenTitle => GoogleFonts.manrope(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.4,
-        color: AppColors.textPrimary,
+        color: AppColors.inkBlack,
       );
 
-  static TextStyle get sectionHeading => GoogleFonts.plusJakartaSans(
+  static TextStyle get sectionHeading => GoogleFonts.manrope(
         fontSize: 16,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.2,
-        color: AppColors.textPrimary,
+        color: AppColors.inkBlack,
       );
 
-  static TextStyle get cardTitle => GoogleFonts.plusJakartaSans(
+  static TextStyle get cardTitle => GoogleFonts.manrope(
         fontSize: 15,
         fontWeight: FontWeight.w600,
         letterSpacing: -0.1,
-        color: AppColors.textPrimary,
+        color: AppColors.inkBlack,
       );
 
-  // Body & Supporting Text
-  static TextStyle get bodyLarge => GoogleFonts.plusJakartaSans(
+  // Body & Supporting Text (Manrope)
+  static TextStyle get bodyLarge => GoogleFonts.manrope(
         fontSize: 15,
         fontWeight: FontWeight.w400,
-        color: AppColors.textPrimary,
+        color: AppColors.inkBlack,
         height: 1.45,
       );
 
-  static TextStyle get bodyMedium => GoogleFonts.plusJakartaSans(
+  static TextStyle get bodyMedium => GoogleFonts.manrope(
         fontSize: 13,
         fontWeight: FontWeight.w400,
-        color: AppColors.textSecondary,
+        color: AppColors.slate,
         height: 1.4,
       );
 
-  static TextStyle get bodySmall => GoogleFonts.plusJakartaSans(
+  static TextStyle get bodySmall => GoogleFonts.manrope(
         fontSize: 12,
         fontWeight: FontWeight.w400,
-        color: AppColors.textSecondary,
+        color: AppColors.slate,
       );
 
-  static TextStyle get buttonLabel => GoogleFonts.plusJakartaSans(
-        fontSize: 14,
+  static TextStyle get labelSmall => GoogleFonts.manrope(
+        fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
+        color: AppColors.slate,
       );
 
-  // Technical & Numeric Data (JetBrains Mono)
-  static TextStyle get metricNumber => GoogleFonts.jetBrainsMono(
-        fontSize: 24,
+  static TextStyle get buttonText => GoogleFonts.manrope(
+        fontSize: 14,
         fontWeight: FontWeight.w700,
-        letterSpacing: -0.5,
-        color: AppColors.textPrimary,
-      );
-
-  static TextStyle get monoLabel => GoogleFonts.jetBrainsMono(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
         letterSpacing: 0.1,
-        color: AppColors.textSecondary,
+        color: Colors.white,
       );
 
-  static TextStyle get badgeText => GoogleFonts.plusJakartaSans(
-        fontSize: 11,
+  // Technical & Operational Numbers (IBM Plex Mono)
+  static TextStyle get monoMetric => GoogleFonts.ibmPlexMono(
+        fontSize: 32,
         fontWeight: FontWeight.w700,
-        letterSpacing: 0.3,
+        letterSpacing: -1.0,
+        color: AppColors.inkBlack,
+      );
+
+  static TextStyle get monoData => GoogleFonts.ibmPlexMono(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        color: AppColors.inkBlack,
+      );
+
+  static TextStyle get monoLabel => GoogleFonts.ibmPlexMono(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: AppColors.slate,
       );
 }

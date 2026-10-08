@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html;
+import 'web_auth_adapter.dart';
 
 /// User profile model representing an authenticated Google operator.
 class AuthUser {
@@ -53,7 +52,7 @@ class AuthService {
     if (!kIsWeb) return null;
 
     try {
-      final currentUrl = html.window.location.href;
+      final currentUrl = getWebCurrentUrl();
       final uri = Uri.parse(currentUrl);
 
       String? token;
@@ -80,7 +79,7 @@ class AuthService {
           debugPrint('Authenticated Google User: ${_currentUser?.email}');
 
           // Clean URL fragment
-          html.window.history.replaceState({}, '', uri.path);
+          replaceWebHistoryState(uri.path);
 
           return _currentUser;
         }
@@ -96,7 +95,7 @@ class AuthService {
   void redirectToGoogleSignIn() {
     if (!kIsWeb) return;
 
-    final redirectUri = '${html.window.location.protocol}//${html.window.location.host}';
+    final redirectUri = getWebRedirectUri();
 
     final googleAuthUrl = Uri.https(
       'accounts.google.com',
@@ -112,7 +111,7 @@ class AuthService {
     ).toString();
 
     // Browser navigation to Google Accounts
-    html.window.location.href = googleAuthUrl;
+    navigateWebTo(googleAuthUrl);
   }
 
   /// Sign out

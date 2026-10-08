@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "922415814604",
+    "project_id": "rentflow-c6ca0",
+    "storage_bucket": "rentflow-c6ca0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922415814604:android:04c39085a78f79916eaf69",
+        "android_client_info": {
+          "package_name": "com.rentflow.rentflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhDr7koVzSzxHTNufH0aOKl31BjkTTyRs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

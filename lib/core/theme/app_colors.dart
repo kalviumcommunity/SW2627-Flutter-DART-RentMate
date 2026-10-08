@@ -1,40 +1,49 @@
 import 'package:flutter/material.dart';
 
-/// Central design tokens and color palette for RentFlow.
+/// Industrial Atelier color palette for RentFlow.
 ///
-/// Flutter & Dart Concepts:
-/// - `abstract final class`: Pure namespace container; cannot be instantiated or extended.
-/// - `static const Color`: Compile-time constant colors. `0xFF` represents the alpha
-///   channel (100% opacity) followed by the 6-character hex code.
-/// - Centralization Rule: Never hardcode hex codes directly inside screen widgets.
-///   Referencing [AppColors] guarantees consistency across the entire application.
+/// Palette Direction:
+/// - Ink Black & Bone/Paper form the primary high-contrast operational surfaces.
+/// - Burnt Copper is the signature RentFlow action & highlight color.
+/// - Aged Brass provides warm metallic operational accents.
+/// - Muted Sage & Success Green communicate operational states without dominating.
 abstract final class AppColors {
   AppColors._();
 
-  // Primary Brand Identity
-  static const Color forestObsidian = Color(0xFF121816); // Deep near-black forest
-  static const Color alpineEvergreen = Color(0xFF154D38); // Main brand/action green
-  static const Color evergreenHover = Color(0xFF1C6349); // Subtle interactive hover/focus
-  static const Color evergreenSubtle = Color(0xFFE8F2EC); // Light tinted badge fill
+  // Primary Foundations
+  static const Color inkBlack = Color(0xFF111514);       // Deepest foundational surface
+  static const Color bone = Color(0xFFF3EEE5);           // Warm editorial canvas
+  static const Color paper = Color(0xFFFAF7F0);          // Crisp elevated surface
 
-  // Surface & Neutral Backgrounds
-  static const Color warmIvory = Color(0xFFFBF9F6); // Warm operational canvas
-  static const Color pureWhite = Color(0xFFFFFFFF); // High-contrast card surfaces
-  static const Color surfaceMuted = Color(0xFFF1EFEA); // Nested sections & inputs
+  // Signature Brand Accents
+  static const Color burntCopper = Color(0xFFB86A45);    // Signature RentFlow action color
+  static const Color copperHover = Color(0xFFA35B38);    // Interactive hover / pressed
+  static const Color copperSubtle = Color(0xFFF5EBE6);   // Soft tinted fill for badges/pills
+  static const Color agedBrass = Color(0xFFC59A5A);      // Warm metallic highlight & warnings
 
-  // Functional & Semantic Accents
-  static const Color industrialAmber = Color(0xFFB45309); // Warnings, packing, review
-  static const Color amberSubtle = Color(0xFFFEF3C7); // Amber badge background
-  static const Color hazardCrimson = Color(0xFFA92A2A); // Overlaps, double-booking conflicts
-  static const Color crimsonSubtle = Color(0xFFFEE2E2); // Conflict banner background
-  static const Color successGreen = Color(0xFF16A34A); // Confirmed, completed
-  static const Color successSubtle = Color(0xFFDCFCE7); // Success badge background
+  // Operational & Semantic Accents
+  static const Color mutedSage = Color(0xFF849687);      // Operational neutral / standby
+  static const Color slate = Color(0xFF5B6664);          // Secondary typography & metadata
+  static const Color softStone = Color(0xFFD9D1C5);      // Structural dividers & fine rules
+  static const Color success = Color(0xFF3F7D5A);        // Confirmed / Ready / Dispatched
+  static const Color successSubtle = Color(0xFFE8F1EB);  // Success badge background
+  static const Color warning = Color(0xFFC8893D);        // Packing / Attention required
+  static const Color warningSubtle = Color(0xFFF9F3EA);  // Warning badge background
+  static const Color danger = Color(0xFFB94A4A);         // Conflicts / Errors
+  static const Color dangerSubtle = Color(0xFFF9EAEA);   // Conflict badge background
 
-  // Typography & Structural Borders
-  static const Color slateSteel = Color(0xFF475569); // Slate steel for secondary elements
-  static const Color textPrimary = Color(0xFF0F172A); // High-contrast slate navy
-  static const Color textSecondary = Color(0xFF475569); // Slate steel for labels
-  static const Color textMuted = Color(0xFF94A3B8); // Placeholders and disabled text
-  static const Color structuralBorder = Color(0xFFCBD5E1); // Crisp 1px container borders
-  static const Color borderSubtle = Color(0xFFE2E8F0); // Hairline divider borders
+  // Compatibility Aliases for Design System consistency
+  static const Color forestObsidian = inkBlack;
+  static const Color alpineEvergreen = burntCopper;     // Signature action color
+  static const Color warmIvory = bone;
+  static const Color pureWhite = paper;
+  static const Color surfaceMuted = bone;
+  static const Color textPrimary = inkBlack;
+  static const Color textSecondary = slate;
+  static const Color textMuted = Color(0xFF8C9694);
+  static const Color structuralBorder = softStone;
+  static const Color borderSubtle = Color(0xFFE5DFD5);
+  static const Color industrialAmber = agedBrass;
+  static const Color hazardCrimson = danger;
+  static const Color successGreen = success;
 }

@@ -6,14 +6,13 @@ import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
 import '../../widgets/rentflow_text_field.dart';
 
-/// Coordinator Authentication screen.
+/// Coordinator Authentication screen (Industrial Atelier).
 ///
-/// Flutter & Dart Concepts Taught:
-/// - Form handling & `TextEditingController`: Manages text input state.
-/// - Password visibility toggle: Demonstrates local state updates with `setState()`.
-/// - Keyboard responsiveness: `SingleChildScrollView` prevents render overflow
-///   when the software keyboard slides up on Android/iOS.
-/// - Social Auth placeholders: Outlined secondary buttons following HIG guidelines.
+/// Hierarchy:
+/// 1. Cinematic atmospheric header in Ink Black with amber/copper lighting accents.
+/// 2. Brand Identity: RENTFLOW • EQUIPMENT. EVENTS. EXECUTED.
+/// 3. Bone/Paper form surface with Burnt Copper primary action.
+/// 4. Secondary workspace authentication actions (Google & Apple).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -66,211 +65,334 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.warmIvory,
+      backgroundColor: AppColors.inkBlack,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.screenPaddingH,
-              vertical: 24.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Brand Mark
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.alpineEvergreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.event_available_rounded,
-                    color: Colors.white,
-                    size: 26,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Atmospheric Brand Header (Ink Black + Warm Lighting)
+              _buildAtmosphericHeader(),
+
+              // Elevated Paper/Bone Form Container
+              Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.bone,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Screen Heading
-                Text(
-                  'Welcome Back',
-                  style: AppTextStyles.screenTitle.copyWith(fontSize: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.screenPaddingH,
+                  vertical: 28.0,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Sign in to coordinate event equipment, dispatch schedules, and inventory.',
-                  style: AppTextStyles.bodyMedium,
-                ),
-                const SizedBox(height: 28),
-
-                // Email Input
-                RentFlowTextField(
-                  label: 'Work Email',
-                  hintText: 'name@company.com',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.email_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                // Password Input with Visibility Toggle
-                RentFlowTextField(
-                  label: 'Password',
-                  hintText: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  prefixIcon: Icons.lock_outline_rounded,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Remember Me & Forgot Password Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Heading & Subtitle
+                    Text(
+                      'Welcome Back',
+                      style: AppTextStyles.screenTitle.copyWith(
+                        fontSize: 24,
+                        color: AppColors.inkBlack,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Sign in to coordinate event equipment, dispatch schedules, and inventory.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.slate,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Inputs Section inside Paper Container
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.paper,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.softStone,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Work Email
+                          RentFlowTextField(
+                            label: 'Work Email',
+                            hintText: 'name@company.com',
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            prefixIcon: Icons.email_outlined,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password with Visibility Toggle
+                          RentFlowTextField(
+                            label: 'Password',
+                            hintText: 'Enter your password',
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            prefixIcon: Icons.lock_outline_rounded,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.slate,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Remember Me & Forgot Password Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: Checkbox(
+                                      value: _rememberMe,
+                                      activeColor: AppColors.burntCopper,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _rememberMe = val ?? false;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Remember me',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.inkBlack,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Password reset link will be sent to your administrator.',
+                                      ),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Forgot password?',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.burntCopper,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Primary Sign In Button (Burnt Copper)
+                    RentFlowButton(
+                      label: 'Sign In to Operations',
+                      isLoading: _isLoading,
+                      onPressed: _handleSignIn,
+                      icon: Icons.arrow_forward_rounded,
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Section Divider
                     Row(
                       children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _rememberMe,
-                            activeColor: AppColors.alpineEvergreen,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                        const Expanded(
+                          child: Divider(color: AppColors.softStone),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'OR',
+                            style: AppTextStyles.monoLabel.copyWith(
+                              color: AppColors.slate,
+                              fontSize: 11,
                             ),
-                            onChanged: (val) {
-                              setState(() {
-                                _rememberMe = val ?? false;
-                              });
-                            },
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Remember me',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                        const Expanded(
+                          child: Divider(color: AppColors.softStone),
                         ),
                       ],
                     ),
-                    TextButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Password reset link will be sent to your administrator.',
+                    const SizedBox(height: 18),
+
+                    // Secondary Social Logins (Google & Apple)
+                    RentFlowSecondaryButton(
+                      label: 'Continue with Google Workspace',
+                      leading: const Icon(
+                        Icons.g_mobiledata_rounded,
+                        size: 24,
+                        color: AppColors.inkBlack,
+                      ),
+                      onPressed: _handleSignIn,
+                    ),
+                    const SizedBox(height: 10),
+                    RentFlowSecondaryButton(
+                      label: 'Continue with Apple ID',
+                      leading: const Icon(
+                        Icons.apple_rounded,
+                        size: 20,
+                        color: AppColors.inkBlack,
+                      ),
+                      onPressed: _handleSignIn,
+                    ),
+                    const SizedBox(height: 26),
+
+                    // Sign Up Entry Link
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.slate,
                             ),
-                            duration: Duration(seconds: 2),
                           ),
-                        );
-                      },
-                      child: Text(
-                        'Forgot password?',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.alpineEvergreen,
-                          fontWeight: FontWeight.w600,
-                        ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pushNamed(AppRoutes.signUp);
+                            },
+                            child: Text(
+                              'Sign Up',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.burntCopper,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-
-                // Primary Sign In Button
-                RentFlowButton(
-                  label: 'Sign In to Operations',
-                  isLoading: _isLoading,
-                  onPressed: _handleSignIn,
-                  icon: Icons.login_rounded,
-                ),
-                const SizedBox(height: 24),
-
-                // Divider with "or continue with"
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        'OR',
-                        style: AppTextStyles.monoLabel.copyWith(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Social Logins (Google & Apple)
-                RentFlowSecondaryButton(
-                  label: 'Continue with Google Workspace',
-                  leading: const Icon(
-                    Icons.g_mobiledata_rounded,
-                    size: 24,
-                    color: AppColors.textPrimary,
-                  ),
-                  onPressed: _handleSignIn,
-                ),
-                const SizedBox(height: 12),
-                RentFlowSecondaryButton(
-                  label: 'Continue with Apple ID',
-                  leading: const Icon(
-                    Icons.apple_rounded,
-                    size: 20,
-                    color: AppColors.textPrimary,
-                  ),
-                  onPressed: _handleSignIn,
-                ),
-                const SizedBox(height: 28),
-
-                // Sign Up Entry Point
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: AppTextStyles.bodySmall,
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pushNamed(AppRoutes.signUp);
-                        },
-                        child: Text(
-                          'Sign Up',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.alpineEvergreen,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Builds the atmospheric event-production brand header
+  Widget _buildAtmosphericHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+      color: AppColors.inkBlack,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Brand Emblem + Name Row
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.burntCopper,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.layers_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'RENTFLOW',
+                    style: AppTextStyles.brandTitle.copyWith(
+                      fontSize: 20,
+                      letterSpacing: 1.5,
+                      color: AppColors.bone,
+                    ),
+                  ),
+                  Text(
+                    'OPERATIONS OS',
+                    style: AppTextStyles.monoLabel.copyWith(
+                      fontSize: 10,
+                      color: AppColors.agedBrass,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // Editorial Tagline
+          Text(
+            'EQUIPMENT.\nEVENTS.\nEXECUTED.',
+            style: AppTextStyles.brandTitle.copyWith(
+              fontSize: 26,
+              height: 1.15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+              color: AppColors.paper,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.burntCopper,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Live logistics & warehouse fleet orchestration',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.softStone,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

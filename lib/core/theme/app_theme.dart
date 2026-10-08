@@ -27,14 +27,14 @@ final class AppTheme {
         onSurface: AppColors.inkBlack,
         outline: AppColors.softStone,
       ),
-      fontFamily: GoogleFonts.manrope().fontFamily,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         backgroundColor: AppColors.bone,
         foregroundColor: AppColors.inkBlack,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: AppColors.inkBlack,

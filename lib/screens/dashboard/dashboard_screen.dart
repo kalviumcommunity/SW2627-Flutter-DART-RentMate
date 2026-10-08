@@ -397,8 +397,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildTimelineItem(
           time: '10:00',
           title: 'SHARMA WEDDING',
+          tag: 'STAGE-RIG 04',
           status: 'Loading',
           progressText: '6 / 12 items',
+          progressRatio: 0.5,
           statusColor: AppColors.warning,
           statusBg: AppColors.warningSubtle,
         ),
@@ -406,8 +408,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildTimelineItem(
           time: '13:00',
           title: 'TECHCORP CONFERENCE',
+          tag: 'AV-SUITE 02',
           status: 'Packing',
           progressText: '18 / 25 items',
+          progressRatio: 0.72,
           statusColor: AppColors.burntCopper,
           statusBg: AppColors.copperSubtle,
         ),
@@ -415,8 +419,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _buildTimelineItem(
           time: '16:00',
           title: 'MEHTA SANGEET',
+          tag: 'DOCK-BAY 01',
           status: 'Ready',
           progressText: 'Staged at dock 02',
+          progressRatio: 1.0,
           statusColor: AppColors.success,
           statusBg: AppColors.successSubtle,
         ),
@@ -427,8 +433,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTimelineItem({
     required String time,
     required String title,
+    required String tag,
     required String status,
     required String progressText,
+    required double progressRatio,
     required Color statusColor,
     required Color statusBg,
   }) {
@@ -439,69 +447,110 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.softStone, width: 1),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Time badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.bone,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.softStone, width: 0.8),
-            ),
-            child: Text(
-              time,
-              style: AppTextStyles.monoData.copyWith(
-                fontSize: 12,
-                color: AppColors.inkBlack,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Title & Progress
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.1,
+          Row(
+            children: [
+              // Time badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.bone,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.softStone, width: 0.8),
+                ),
+                child: Text(
+                  time,
+                  style: AppTextStyles.monoData.copyWith(
+                    fontSize: 12,
+                    color: AppColors.inkBlack,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  progressText,
-                  style: AppTextStyles.monoLabel.copyWith(
+              ),
+              const SizedBox(width: 10),
+
+              // Title & Operational Tag
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.cardTitle.copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: AppColors.bone,
+                            borderRadius: BorderRadius.circular(3),
+                            border: Border.all(color: AppColors.softStone, width: 0.6),
+                          ),
+                          child: Text(
+                            tag,
+                            style: AppTextStyles.monoLabel.copyWith(
+                              fontSize: 8.5,
+                              color: AppColors.slate,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      progressText,
+                      style: AppTextStyles.monoLabel.copyWith(
+                        fontSize: 11,
+                        color: AppColors.slate,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: statusColor.withAlpha(100),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  status,
+                  style: AppTextStyles.bodySmall.copyWith(
                     fontSize: 11,
-                    color: AppColors.slate,
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
 
-          // Status Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: statusColor.withAlpha(100),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              status,
-              style: AppTextStyles.bodySmall.copyWith(
-                fontSize: 11,
-                color: statusColor,
-                fontWeight: FontWeight.w700,
-              ),
+          // Tactical Progress Track
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: progressRatio,
+              minHeight: 2.5,
+              backgroundColor: AppColors.softStone.withAlpha(120),
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
         ],

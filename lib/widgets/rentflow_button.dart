@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 
-/// Primary action button for the RentFlow design system.
+/// Primary action button for RentFlow (Industrial Atelier).
 ///
-/// Flutter & Dart Concepts Taught:
-/// - `Widget composition`: Wraps standard `ElevatedButton` with centralized
-///   tokens so brand updates propagate app-wide automatically.
-/// - `VoidCallback? onPressed`: Function typedef `void Function()`. If null,
-///   Flutter automatically renders the button in a disabled state.
-/// - `Widget? icon`: Flexible composition allowing buttons with or without icons.
+/// Features:
+/// - Crisp, industrial 8px corner radius.
+/// - Signature Burnt Copper primary fill with subtle feedback.
+/// - Unobtrusive spinner during async operations.
 class RentFlowButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -32,7 +30,7 @@ class RentFlowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? AppColors.alpineEvergreen;
+    final bg = backgroundColor ?? AppColors.burntCopper;
     final fg = textColor ?? Colors.white;
 
     return SizedBox(
@@ -43,10 +41,10 @@ class RentFlowButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,
           foregroundColor: fg,
-          disabledBackgroundColor: AppColors.structuralBorder,
+          disabledBackgroundColor: AppColors.softStone,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
@@ -63,14 +61,14 @@ class RentFlowButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 18, color: fg),
-                    const SizedBox(width: 8),
-                  ],
                   Text(
                     label,
-                    style: AppTextStyles.buttonLabel.copyWith(color: fg),
+                    style: AppTextStyles.buttonText.copyWith(color: fg),
                   ),
+                  if (icon != null) ...[
+                    const SizedBox(width: 8),
+                    Icon(icon, size: 18, color: fg),
+                  ],
                 ],
               ),
       ),
@@ -78,7 +76,7 @@ class RentFlowButton extends StatelessWidget {
   }
 }
 
-/// Outlined secondary button variant.
+/// Secondary action button for RentFlow (Subtle Paper/Ink border).
 class RentFlowSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -90,7 +88,7 @@ class RentFlowSecondaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.leading,
-    this.height = 48.0,
+    this.height = 46.0,
   });
 
   @override
@@ -101,12 +99,17 @@ class RentFlowSecondaryButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.pureWhite,
-          foregroundColor: AppColors.textPrimary,
-          side: const BorderSide(color: AppColors.structuralBorder, width: 1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+          backgroundColor: AppColors.paper,
+          foregroundColor: AppColors.inkBlack,
+          side: const BorderSide(
+            color: AppColors.softStone,
+            width: 1,
           ),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -118,8 +121,9 @@ class RentFlowSecondaryButton extends StatelessWidget {
             ],
             Text(
               label,
-              style: AppTextStyles.buttonLabel.copyWith(
-                color: AppColors.textPrimary,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.inkBlack,
               ),
             ),
           ],

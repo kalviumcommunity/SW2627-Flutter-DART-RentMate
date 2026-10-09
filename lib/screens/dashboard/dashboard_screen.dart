@@ -250,51 +250,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         // Equipment Units
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.paper,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.softStone, width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'EQUIPMENT UNITS',
-                      style: AppTextStyles.monoLabel.copyWith(
-                        fontSize: 10,
-                        color: AppColors.slate,
-                        fontWeight: FontWeight.w700,
+          child: InkWell(
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.inventory),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.softStone, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'EQUIPMENT UNITS',
+                        style: AppTextStyles.monoLabel.copyWith(
+                          fontSize: 10,
+                          color: AppColors.slate,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                      const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 16,
+                        color: AppColors.slate,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '148',
+                    style: AppTextStyles.monoMetric.copyWith(
+                      fontSize: 26,
+                      color: AppColors.inkBlack,
                     ),
-                    const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 16,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '98% operational capacity',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 11,
                       color: AppColors.slate,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '148',
-                  style: AppTextStyles.monoMetric.copyWith(
-                    fontSize: 26,
-                    color: AppColors.inkBlack,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '98% operational capacity',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 11,
-                    color: AppColors.slate,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -595,6 +599,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context: context,
               icon: Icons.inventory_2_outlined,
               label: 'Inventory',
+              onTap: () => Navigator.of(context).pushNamed(AppRoutes.inventory),
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
@@ -619,17 +624,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String label,
     bool isPrimary = false,
+    VoidCallback? onTap,
   }) {
     return Expanded(
       child: InkWell(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label command queued.'),
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        },
+        onTap: onTap ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$label command queued.'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -699,7 +706,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentNavIndex == index;
     return InkWell(
-      onTap: () => setState(() => _currentNavIndex = index),
+      onTap: () {
+        setState(() => _currentNavIndex = index);
+        if (index == 2) {
+          Navigator.of(context).pushNamed(AppRoutes.inventory);
+        }
+      },
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

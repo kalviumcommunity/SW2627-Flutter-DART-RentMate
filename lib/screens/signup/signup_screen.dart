@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
@@ -26,12 +27,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = AuthService();
 
   String _selectedRole = 'Event Coordinator';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   final List<String> _roles = [
     'Event Coordinator',
@@ -78,6 +81,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRedirectAuth();
+  }
+
+  Future<void> _checkRedirectAuth() async {
+    final user = await _authService.checkOAuthRedirect();
+    if (user != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.inkBlack,
+          content: Text(
+            'Registered with Google: ${user.displayName} (${user.email})',
+            style: const TextStyle(color: AppColors.bone),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.dashboard,
+        arguments: user.displayName,
+      );
+    }
+  }
+
+  void _handleGoogleSignUp() {
+    setState(() => _isGoogleLoading = true);
+    _authService.redirectToGoogleSignIn();
   }
 
   @override
@@ -363,13 +397,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       // Social Registration Actions
                       RentFlowSecondaryButton(
-                        label: 'Sign up with Google Workspace',
-                        leading: const Icon(
-                          Icons.g_mobiledata_rounded,
-                          size: 24,
-                          color: AppColors.inkBlack,
-                        ),
-                        onPressed: _handleSignUp,
+                        label: _isGoogleLoading
+                            ? 'Connecting to Google...'
+                            : 'Sign up with Google Workspace',
+                        leading: _isGoogleLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.burntCopper,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.g_mobiledata_rounded,
+                                size: 24,
+                                color: AppColors.inkBlack,
+                              ),
+                        onPressed: _isGoogleLoading ? null : _handleGoogleSignUp,
                       ),
                       const SizedBox(height: 10),
                       RentFlowSecondaryButton(

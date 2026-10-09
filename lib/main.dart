@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'core/constants/app_constants.dart';
 import 'core/routes/app_routes.dart';
 import 'core/theme/app_theme.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 /// Entry point of the RentFlow application.
 ///
 /// Flutter & Dart Concepts Taught:
@@ -12,7 +13,11 @@ import 'core/theme/app_theme.dart';
 ///   widget to the screen, creating the root of the widget tree.
 /// - `const RentFlowApp()`: Uses Dart's `const` constructor to optimize memory
 ///   by reusing the same instance whenever possible.
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const RentFlowApp());
 }
 

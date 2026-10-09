@@ -3,6 +3,9 @@ import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../bookings/booking_details_screen.dart';
+import '../bookings/bookings_list_screen.dart';
+import '../bookings/create_booking_screen.dart';
 
 /// Coordinator Dashboard screen (RentFlow Operations Cockpit).
 ///
@@ -36,41 +39,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bone,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.screenPaddingH,
-            vertical: 22.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Bar with left-aligned greeting & logout action
-              _buildTopHeader(context, displayName),
-              const SizedBox(height: 22),
+      body: _currentNavIndex == 1
+          ? const BookingsListScreen()
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.screenPaddingH,
+                  vertical: 22.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Bar with left-aligned greeting & logout action
+                    _buildTopHeader(context, displayName),
+                    const SizedBox(height: 22),
 
-              // Large Primary Operational Panel
-              _buildPrimaryOperationalPanel(),
-              const SizedBox(height: 14),
+                    // Large Primary Operational Panel
+                    _buildPrimaryOperationalPanel(),
+                    const SizedBox(height: 14),
 
-              // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
-              _buildSecondaryMetricsRow(),
-              const SizedBox(height: 26),
+                    // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
+                    _buildSecondaryMetricsRow(),
+                    const SizedBox(height: 26),
 
-              // Live Operations Section (Event Schedule Timeline)
-              _buildLiveOperationsSection(context),
-              const SizedBox(height: 26),
+                    // Live Operations Section (Event Schedule Timeline)
+                    _buildLiveOperationsSection(context),
+                    const SizedBox(height: 26),
 
-              // Compact Quick Commands Strip
-              _buildQuickCommandsSection(context),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
+                    // Compact Quick Commands Strip
+                    _buildQuickCommandsSection(context),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }
+
 
   /// Top Bar with left-aligned greeting and sign-out action
   Widget _buildTopHeader(BuildContext context, String displayName) {
@@ -432,79 +438,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required Color statusColor,
     required Color statusBg,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.paper,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.softStone, width: 1),
-      ),
-      child: Row(
-        children: [
-          // Time badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.bone,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.softStone, width: 0.8),
-            ),
-            child: Text(
-              time,
-              style: AppTextStyles.monoData.copyWith(
-                fontSize: 12,
-                color: AppColors.inkBlack,
-              ),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingDetailsScreen(
+              eventTitle: title,
+              status: status.toUpperCase(),
             ),
           ),
-          const SizedBox(width: 12),
-
-          // Title & Progress
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.1,
-                  ),
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.paper,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.softStone, width: 1),
+        ),
+        child: Row(
+          children: [
+            // Time badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.bone,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: AppColors.softStone, width: 0.8),
+              ),
+              child: Text(
+                time,
+                style: AppTextStyles.monoData.copyWith(
+                  fontSize: 12,
+                  color: AppColors.inkBlack,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  progressText,
-                  style: AppTextStyles.monoLabel.copyWith(
-                    fontSize: 11,
-                    color: AppColors.slate,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
 
-          // Status Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: statusColor.withAlpha(100),
-                width: 1,
+            // Title & Progress
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTextStyles.cardTitle.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    progressText,
+                    style: AppTextStyles.monoLabel.copyWith(
+                      fontSize: 11,
+                      color: AppColors.slate,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Text(
-              status,
-              style: AppTextStyles.bodySmall.copyWith(
-                fontSize: 11,
-                color: statusColor,
-                fontWeight: FontWeight.w700,
+
+            // Status Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusBg,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: statusColor.withAlpha(100),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                status,
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontSize: 11,
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.slate),
+          ],
+        ),
       ),
     );
   }
@@ -540,24 +562,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.add_rounded,
               label: 'New Booking',
               isPrimary: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CreateBookingScreen()),
+                );
+              },
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
               context: context,
               icon: Icons.inventory_2_outlined,
               label: 'Inventory',
+              onTap: () {
+                setState(() => _currentNavIndex = 1);
+              },
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
               context: context,
               icon: Icons.local_shipping_outlined,
               label: 'Dispatch',
+              onTap: () {
+                setState(() => _currentNavIndex = 1);
+              },
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
               context: context,
               icon: Icons.event_available_outlined,
               label: 'Availability',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CreateBookingScreen()),
+                );
+              },
             ),
           ],
         ),
@@ -570,17 +610,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String label,
     bool isPrimary = false,
+    VoidCallback? onTap,
   }) {
     return Expanded(
       child: InkWell(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label command queued.'),
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        },
+        onTap: onTap ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$label command queued.'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -618,6 +660,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
 
   /// Bottom Navigation (Industrial Atelier Dock)
   Widget _buildBottomNavigation() {

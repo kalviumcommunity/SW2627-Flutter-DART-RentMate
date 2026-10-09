@@ -4,8 +4,8 @@ import 'package:rentflow/main.dart';
 import 'package:rentflow/screens/login/login_screen.dart';
 import 'package:rentflow/screens/signup/signup_screen.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
-
 import 'package:rentflow/screens/dashboard/dashboard_screen.dart';
+import 'package:rentflow/screens/inventory/inventory_screen.dart';
 
 void main() {
   testWidgets('RentFlowApp launches with Login screen as initial route',
@@ -139,5 +139,62 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 700));
 
     expect(find.text('Hello Alex Rivera'), findsOneWidget);
+  });
+
+  testWidgets('Inventory screen renders fleet metrics and equipment roster',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const InventoryScreen(),
+      ),
+    );
+
+    expect(find.text('INVENTORY FLEET'), findsOneWidget);
+    expect(find.text('TOTAL ASSETS'), findsOneWidget);
+    expect(find.text('EQUIPMENT ROSTER'), findsOneWidget);
+    expect(find.text('Robe Robin Pointe Moving Beam'), findsOneWidget);
+  });
+
+  testWidgets('Tapping Inventory tab on Dashboard switches to Inventory view',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const DashboardScreen(userName: 'Mayank'),
+      ),
+    );
+
+    // Initial Overview Dashboard is visible
+    expect(find.text('Active Bookings'), findsOneWidget);
+
+    // Tap Inventory in bottom navigation
+    await tester.tap(find.text('Inventory').last);
+    await tester.pumpAndSettle();
+
+    // Inventory screen content is now rendered
+    expect(find.text('INVENTORY FLEET'), findsOneWidget);
+    expect(find.text('TOTAL ASSETS'), findsOneWidget);
+    expect(find.text('Robe Robin Pointe Moving Beam'), findsOneWidget);
+
+    // Tap back button in header to return to Overview
+    await tester.tap(find.byTooltip('Back to Overview'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Active Bookings'), findsOneWidget);
   });
 }

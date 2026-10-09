@@ -3,6 +3,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../inventory/inventory_screen.dart';
 
 /// Coordinator Dashboard screen (RentFlow Operations Cockpit).
 ///
@@ -37,36 +38,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bone,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.screenPaddingH,
-            vertical: 22.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Bar with left-aligned greeting & logout action
-              _buildTopHeader(context, displayName),
-              const SizedBox(height: 22),
+        child: _currentNavIndex == 2
+            ? InventoryScreen(
+                isEmbedded: true,
+                onBackToOverview: () {
+                  setState(() => _currentNavIndex = 0);
+                },
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.screenPaddingH,
+                  vertical: 22.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Bar with left-aligned greeting & logout action
+                    _buildTopHeader(context, displayName),
+                    const SizedBox(height: 22),
 
-              // Large Primary Operational Panel
-              _buildPrimaryOperationalPanel(),
-              const SizedBox(height: 14),
+                    // Large Primary Operational Panel
+                    _buildPrimaryOperationalPanel(),
+                    const SizedBox(height: 14),
 
-              // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
-              _buildSecondaryMetricsRow(),
-              const SizedBox(height: 26),
+                    // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
+                    _buildSecondaryMetricsRow(),
+                    const SizedBox(height: 26),
 
-              // Live Operations Section (Event Schedule Timeline)
-              _buildLiveOperationsSection(context),
-              const SizedBox(height: 26),
+                    // Live Operations Section (Event Schedule Timeline)
+                    _buildLiveOperationsSection(context),
+                    const SizedBox(height: 26),
 
-              // Compact Quick Commands Strip
-              _buildQuickCommandsSection(context),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+                    // Compact Quick Commands Strip
+                    _buildQuickCommandsSection(context),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
       ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
@@ -250,51 +258,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         // Equipment Units
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.paper,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.softStone, width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'EQUIPMENT UNITS',
-                      style: AppTextStyles.monoLabel.copyWith(
-                        fontSize: 10,
-                        color: AppColors.slate,
-                        fontWeight: FontWeight.w700,
+          child: InkWell(
+            onTap: () => setState(() => _currentNavIndex = 2),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.softStone, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'EQUIPMENT UNITS',
+                        style: AppTextStyles.monoLabel.copyWith(
+                          fontSize: 10,
+                          color: AppColors.slate,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                      const Icon(
+                        Icons.inventory_2_outlined,
+                        size: 16,
+                        color: AppColors.slate,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '148',
+                    style: AppTextStyles.monoMetric.copyWith(
+                      fontSize: 26,
+                      color: AppColors.inkBlack,
                     ),
-                    const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 16,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '98% operational capacity',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 11,
                       color: AppColors.slate,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '148',
-                  style: AppTextStyles.monoMetric.copyWith(
-                    fontSize: 26,
-                    color: AppColors.inkBlack,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '98% operational capacity',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 11,
-                    color: AppColors.slate,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -595,6 +607,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context: context,
               icon: Icons.inventory_2_outlined,
               label: 'Inventory',
+              onTap: () => setState(() => _currentNavIndex = 2),
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
@@ -619,17 +632,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required IconData icon,
     required String label,
     bool isPrimary = false,
+    VoidCallback? onTap,
   }) {
     return Expanded(
       child: InkWell(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$label command queued.'),
-              duration: const Duration(seconds: 1),
-            ),
-          );
-        },
+        onTap: onTap ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$label command queued.'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),

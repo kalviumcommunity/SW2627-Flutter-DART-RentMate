@@ -358,8 +358,20 @@ class _LoginScreenState extends State<LoginScreen> {
   /// Builds the atmospheric event-production brand header
   Widget _buildAtmosphericHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-      color: AppColors.inkBlack,
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 26),
+      decoration: const BoxDecoration(
+        color: AppColors.inkBlack,
+        gradient: RadialGradient(
+          center: Alignment(0.85, -0.7),
+          radius: 1.2,
+          colors: [
+            Color(0x28B86A45), // Subtle Burnt Copper stage glow
+            Color(0x15C59A5A), // Aged brass ambient fill
+            AppColors.inkBlack,
+          ],
+          stops: [0.0, 0.45, 1.0],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -372,6 +384,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.burntCopper,
                   borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33B86A45),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.layers_rounded,
@@ -386,8 +405,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'RENTFLOW',
                     style: AppTextStyles.brandTitle.copyWith(
-                      fontSize: 20,
-                      letterSpacing: 1.5,
+                      fontSize: 18,
+                      letterSpacing: 2.0,
                       color: AppColors.bone,
                     ),
                   ),
@@ -403,16 +422,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
 
-          // Editorial Tagline
+          // Editorial Display Tagline (Playfair Display)
           Text(
             'EQUIPMENT.\nEVENTS.\nEXECUTED.',
-            style: AppTextStyles.brandTitle.copyWith(
-              fontSize: 26,
-              height: 1.15,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.8,
+            style: AppTextStyles.displayTagline.copyWith(
+              fontSize: 27,
+              height: 1.12,
               color: AppColors.paper,
             ),
           ),

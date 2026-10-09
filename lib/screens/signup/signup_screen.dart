@@ -213,6 +213,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               runSpacing: 8,
                               children: _roles.map((role) {
                                 final isSelected = _selectedRole == role;
+                                IconData roleIcon;
+                                switch (role) {
+                                  case 'Event Coordinator':
+                                    roleIcon = Icons.assignment_ind_outlined;
+                                    break;
+                                  case 'Warehouse Lead':
+                                    roleIcon = Icons.warehouse_outlined;
+                                    break;
+                                  case 'Inventory Dispatcher':
+                                    roleIcon = Icons.local_shipping_outlined;
+                                    break;
+                                  case 'Operations Manager':
+                                  default:
+                                    roleIcon = Icons.tune_outlined;
+                                    break;
+                                }
                                 return InkWell(
                                   onTap: () {
                                     setState(() => _selectedRole = role);
@@ -238,14 +254,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (isSelected) ...[
-                                          const Icon(
-                                            Icons.check_circle_rounded,
-                                            size: 14,
-                                            color: AppColors.burntCopper,
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
+                                        Icon(
+                                          isSelected
+                                              ? Icons.check_circle_rounded
+                                              : roleIcon,
+                                          size: 15,
+                                          color: isSelected
+                                              ? AppColors.burntCopper
+                                              : AppColors.slate,
+                                        ),
+                                        const SizedBox(width: 7),
                                         Text(
                                           role,
                                           style: AppTextStyles.bodySmall.copyWith(
@@ -454,34 +472,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildAtmosphericHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 20, 24),
-      color: AppColors.inkBlack,
+      padding: const EdgeInsets.fromLTRB(24, 22, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppColors.inkBlack,
+        gradient: RadialGradient(
+          center: Alignment(0.85, -0.7),
+          radius: 1.2,
+          colors: [
+            Color(0x28B86A45), // Subtle Burnt Copper stage glow
+            Color(0x15C59A5A), // Aged brass ambient fill
+            AppColors.inkBlack,
+          ],
+          stops: [0.0, 0.45, 1.0],
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.burntCopper,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33B86A45),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.layers_rounded,
                   color: Colors.white,
-                  size: 18,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                'RENTFLOW',
-                style: AppTextStyles.brandTitle.copyWith(
-                  fontSize: 16,
-                  letterSpacing: 1.2,
-                  color: AppColors.bone,
-                ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'RENTFLOW',
+                    style: AppTextStyles.brandTitle.copyWith(
+                      fontSize: 16,
+                      letterSpacing: 1.8,
+                      color: AppColors.bone,
+                    ),
+                  ),
+                  Text(
+                    'STAFF ONBOARDING',
+                    style: AppTextStyles.monoLabel.copyWith(
+                      fontSize: 9,
+                      color: AppColors.agedBrass,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

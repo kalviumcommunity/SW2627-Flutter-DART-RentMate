@@ -3,6 +3,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../inventory/inventory_screen.dart';
 
 /// Coordinator Dashboard screen (RentFlow Operations Cockpit).
 ///
@@ -37,36 +38,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bone,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.screenPaddingH,
-            vertical: 22.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Bar with left-aligned greeting & logout action
-              _buildTopHeader(context, displayName),
-              const SizedBox(height: 22),
+        child: _currentNavIndex == 2
+            ? InventoryScreen(
+                isEmbedded: true,
+                onBackToOverview: () {
+                  setState(() => _currentNavIndex = 0);
+                },
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.screenPaddingH,
+                  vertical: 22.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Bar with left-aligned greeting & logout action
+                    _buildTopHeader(context, displayName),
+                    const SizedBox(height: 22),
 
-              // Large Primary Operational Panel
-              _buildPrimaryOperationalPanel(),
-              const SizedBox(height: 14),
+                    // Large Primary Operational Panel
+                    _buildPrimaryOperationalPanel(),
+                    const SizedBox(height: 14),
 
-              // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
-              _buildSecondaryMetricsRow(),
-              const SizedBox(height: 26),
+                    // Secondary Metrics Row (148 Equipment Units & 02 Conflicts)
+                    _buildSecondaryMetricsRow(),
+                    const SizedBox(height: 26),
 
-              // Live Operations Section (Event Schedule Timeline)
-              _buildLiveOperationsSection(context),
-              const SizedBox(height: 26),
+                    // Live Operations Section (Event Schedule Timeline)
+                    _buildLiveOperationsSection(context),
+                    const SizedBox(height: 26),
 
-              // Compact Quick Commands Strip
-              _buildQuickCommandsSection(context),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+                    // Compact Quick Commands Strip
+                    _buildQuickCommandsSection(context),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
       ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
@@ -251,7 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // Equipment Units
         Expanded(
           child: InkWell(
-            onTap: () => Navigator.of(context).pushNamed(AppRoutes.inventory),
+            onTap: () => setState(() => _currentNavIndex = 2),
             borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -599,7 +607,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context: context,
               icon: Icons.inventory_2_outlined,
               label: 'Inventory',
-              onTap: () => Navigator.of(context).pushNamed(AppRoutes.inventory),
+              onTap: () => setState(() => _currentNavIndex = 2),
             ),
             const SizedBox(width: 8),
             _buildCommandChip(
@@ -706,12 +714,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentNavIndex == index;
     return InkWell(
-      onTap: () {
-        setState(() => _currentNavIndex = index);
-        if (index == 2) {
-          Navigator.of(context).pushNamed(AppRoutes.inventory);
-        }
-      },
+      onTap: () => setState(() => _currentNavIndex = index),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

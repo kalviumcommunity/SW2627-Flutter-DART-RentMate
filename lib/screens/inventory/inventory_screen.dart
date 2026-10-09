@@ -13,7 +13,14 @@ import '../../core/theme/app_text_styles.dart';
 /// - Flight-case style equipment asset cards with SKUs, rack locations,
 ///   allocation progress tracks, and operational specifications.
 class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({super.key});
+  final bool isEmbedded;
+  final VoidCallback? onBackToOverview;
+
+  const InventoryScreen({
+    super.key,
+    this.isEmbedded = false,
+    this.onBackToOverview,
+  });
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -254,7 +261,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomActionBar(context),
+      bottomNavigationBar:
+          widget.isEmbedded ? null : _buildBottomActionBar(context),
     );
   }
 
@@ -296,8 +304,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     color: AppColors.bone,
                     size: 18,
                   ),
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  tooltip: 'Back to Dashboard',
+                  onPressed: () {
+                    if (widget.onBackToOverview != null) {
+                      widget.onBackToOverview!();
+                    } else {
+                      Navigator.of(context).maybePop();
+                    }
+                  },
+                  tooltip: 'Back to Overview',
                   constraints: const BoxConstraints(
                     minWidth: 36,
                     minHeight: 36,

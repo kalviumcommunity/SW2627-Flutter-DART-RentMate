@@ -274,6 +274,50 @@ class BookingDetailsScreen extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                    if (grandTotal > 25000) ...[
+                      const SizedBox(height: 10),
+                      Divider(color: AppColors.slate.withValues(alpha: 0.5), height: 1),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Manifest Gear Subtotal',
+                            style: AppTextStyles.monoLabel.copyWith(
+                              fontSize: 10,
+                              color: AppColors.bone.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          Text(
+                            '₹25,000',
+                            style: AppTextStyles.monoLabel.copyWith(
+                              fontSize: 10,
+                              color: AppColors.bone,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Logistics, Crew & Insurance',
+                            style: AppTextStyles.monoLabel.copyWith(
+                              fontSize: 10,
+                              color: AppColors.bone.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          Text(
+                            '₹${(grandTotal - 25000).toInt()}',
+                            style: AppTextStyles.monoLabel.copyWith(
+                              fontSize: 10,
+                              color: AppColors.bone,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -285,7 +329,7 @@ class BookingDetailsScreen extends StatelessWidget {
                 icon: Icons.local_shipping_outlined,
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening Dispatch Checklist for #BK-8942...')),
+                    SnackBar(content: Text('Opening Dispatch Checklist for #$bookingId...')),
                   );
                 },
               ),

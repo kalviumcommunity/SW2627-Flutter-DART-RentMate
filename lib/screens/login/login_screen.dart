@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
@@ -92,6 +93,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleGoogleSignIn() {
+    if (!kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Workspace sign-in on mobile will be enabled in next release. Please use email sign in.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     setState(() => _isGoogleLoading = true);
     _authService.redirectToGoogleSignIn();
   }
@@ -315,7 +325,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         size: 20,
                         color: AppColors.inkBlack,
                       ),
-                      onPressed: _handleSignIn,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Apple ID authentication is currently in development.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 26),
 

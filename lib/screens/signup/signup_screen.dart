@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
@@ -63,6 +64,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    // Input validations
+    final emailText = _emailController.text.trim();
+    if (emailText.isNotEmpty && !emailText.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid work email address.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final passText = _passwordController.text;
+    final confirmPassText = _confirmPasswordController.text;
+    if (passText.isNotEmpty && passText != confirmPassText) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match. Please re-enter.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState?.validate() ?? true) {
       setState(() => _isLoading = true);
 
@@ -110,6 +135,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _handleGoogleSignUp() {
+    if (!kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Workspace registration on mobile will be enabled in next release. Please register with email.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     setState(() => _isGoogleLoading = true);
     _authService.redirectToGoogleSignIn();
   }
@@ -424,7 +458,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           size: 20,
                           color: AppColors.inkBlack,
                         ),
-                        onPressed: _handleSignUp,
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Apple ID registration is currently in development.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 26),
 

@@ -1,4 +1,8 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/models/booking_item.dart';
+import '../../core/services/booking_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
@@ -56,8 +60,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   String _selectedEventType = 'Wedding';
   DateTime _startDate = DateTime.now().add(const Duration(days: 3));
   DateTime _endDate = DateTime.now().add(const Duration(days: 4));
-  final TimeOfDay _dispatchTime = const TimeOfDay(hour: 10, minute: 0);
-  final TimeOfDay _returnTime = const TimeOfDay(hour: 23, minute: 30);
+  TimeOfDay _dispatchTime = const TimeOfDay(hour: 10, minute: 0);
+  TimeOfDay _returnTime = const TimeOfDay(hour: 23, minute: 30);
 
   // Step 2 Catalog State
   String _selectedCategory = 'All';
@@ -73,7 +77,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         id: 'eq-1',
         name: 'JBL VRX932LA Line Array Speaker',
         sku: 'SND-JBL-VRX932',
-        category: 'Sound',
+        category: 'Audio',
         totalQty: 16,
         availableQty: 8,
         dailyRate: 1500.0,
@@ -95,7 +99,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         id: 'eq-3',
         name: 'P3.91 High-Res LED Video Wall Panel (500x500mm)',
         sku: 'VIS-LED-P391',
-        category: 'Visuals',
+        category: 'Video & LED',
         totalQty: 40,
         availableQty: 20,
         dailyRate: 1200.0,
@@ -106,7 +110,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         id: 'eq-4',
         name: 'Heavy Duty Aluminum Box Truss (3m x 290mm)',
         sku: 'STG-TRS-3M',
-        category: 'Staging',
+        category: 'Rigging & Staging',
         totalQty: 30,
         availableQty: 14,
         dailyRate: 600.0,
@@ -117,7 +121,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         id: 'eq-5',
         name: 'Shure ULXD4 Wireless Dual Mic Set',
         sku: 'SND-SHURE-ULXD',
-        category: 'Sound',
+        category: 'Audio',
         totalQty: 10,
         availableQty: 5,
         dailyRate: 950.0,
@@ -128,7 +132,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         id: 'eq-6',
         name: '62.5 kVA Silent Diesel Generator Unit',
         sku: 'PWR-GEN-62KVA',
-        category: 'Power',
+        category: 'Power & Control',
         totalQty: 4,
         availableQty: 2,
         dailyRate: 4500.0,
@@ -149,11 +153,14 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   }
 
   // Calculation helpers
+  int get _rentalDays => math.max(1, _endDate.difference(_startDate).inDays);
+
   int get _totalSelectedItems =>
       _catalog.fold(0, (sum, item) => sum + item.selectedQty);
 
   double get _totalDailyRental =>
-      _catalog.fold(0.0, (sum, item) => sum + (item.selectedQty * item.dailyRate));
+      _catalog.fold(0.0, (sum, item) => sum + (item.selectedQty * item.dailyRate)) *
+      _rentalDays;
 
   double get _securityDeposit => _totalDailyRental * 0.25;
   double get _logisticsFee => 2500.0;
@@ -431,7 +438,17 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setState(() => _startDate = picked);
+                    if (picked != null && mounted) {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: _dispatchTime,
+                      );
+                      if (!mounted) return;
+                      setState(() {
+                        _startDate = picked;
+                        if (pickedTime != null) _dispatchTime = pickedTime;
+                      });
+                    }
                   },
                 ),
               ),
@@ -448,7 +465,17 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       firstDate: _startDate,
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setState(() => _endDate = picked);
+                    if (picked != null && mounted) {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: _returnTime,
+                      );
+                      if (!mounted) return;
+                      setState(() {
+                        _endDate = picked;
+                        if (pickedTime != null) _returnTime = pickedTime;
+                      });
+                    }
                   },
                 ),
               ),
@@ -556,7 +583,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: ['All', 'Sound', 'Lighting', 'Visuals', 'Staging', 'Power'].map((cat) {
+            children: ['All', ...AppConstants.equipmentCategories].map((cat) {
               final isSelected = _selectedCategory == cat;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -1153,8 +1180,29 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       : 'Lock & Confirm Reservation',
               icon: _currentStep == 3 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
               onPressed: () {
-                if (_currentStep < 3) {
-                  setState(() => _currentStep++);
+                if (_currentStep == 1) {
+                  if (_eventNameController.text.trim().isEmpty ||
+                      _venueController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter an event title and venue to continue.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    return;
+                  }
+                  setState(() => _currentStep = 2);
+                } else if (_currentStep == 2) {
+                  if (_totalSelectedItems <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select at least 1 equipment item to proceed.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    return;
+                  }
+                  setState(() => _currentStep = 3);
                 } else {
                   _showBookingSuccessDialog();
                 }
@@ -1167,6 +1215,22 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   }
 
   void _showBookingSuccessDialog() {
+    final newId = 'BK-${(1000 + DateTime.now().millisecondsSinceEpoch % 9000)}';
+    final newBooking = BookingItem(
+      id: newId,
+      eventTitle: _eventNameController.text.trim(),
+      clientName: _clientNameController.text.trim().isNotEmpty
+          ? _clientNameController.text.trim()
+          : 'Event Client',
+      category: _selectedEventType,
+      date: '${_startDate.day} ${_getMonthName(_startDate.month)} — ${_endDate.day} ${_getMonthName(_endDate.month)}',
+      venue: _venueController.text.trim(),
+      status: 'CONFIRMED',
+      unitsCount: _totalSelectedItems,
+      totalAmount: _grandTotal,
+    );
+    BookingRepository().addBooking(newBooking);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1199,7 +1263,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Reservation #BK-8942 has been locked and added to warehouse dispatch manifests.',
+              'Reservation #$newId has been locked and added to warehouse dispatch manifests.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(color: AppColors.slate),
             ),

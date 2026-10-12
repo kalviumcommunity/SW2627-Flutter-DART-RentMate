@@ -4,30 +4,9 @@ import '../../core/theme/app_text_styles.dart';
 import 'booking_details_screen.dart';
 import 'create_booking_screen.dart';
 
-/// Booking item data for pure UI display
-class BookingItem {
-  final String id;
-  final String eventTitle;
-  final String clientName;
-  final String category;
-  final String date;
-  final String venue;
-  final String status;
-  final int unitsCount;
-  final double totalAmount;
-
-  const BookingItem({
-    required this.id,
-    required this.eventTitle,
-    required this.clientName,
-    required this.category,
-    required this.date,
-    required this.venue,
-    required this.status,
-    required this.unitsCount,
-    required this.totalAmount,
-  });
-}
+import '../../core/models/booking_item.dart';
+import '../../core/services/booking_repository.dart';
+export '../../core/models/booking_item.dart';
 
 /// Bookings List Screen (RentFlow Section 5.4).
 ///
@@ -47,63 +26,23 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
   String _selectedFilter = 'All';
   String _searchQuery = '';
 
-  final List<BookingItem> _bookings = const [
-    BookingItem(
-      id: 'BK-8942',
-      eventTitle: 'Sharma Royal Wedding & Sangeet',
-      clientName: 'Rajesh Sharma',
-      category: 'Wedding',
-      date: 'Today, 14:00 — 23:30',
-      venue: 'The Oberoi Rajvilas, Jaipur',
-      status: 'READY',
-      unitsCount: 24,
-      totalAmount: 48500.0,
-    ),
-    BookingItem(
-      id: 'BK-8941',
-      eventTitle: 'TechCorp Global Product Launch 2026',
-      clientName: 'Priya Mehra',
-      category: 'Corporate',
-      date: 'Tomorrow, 08:30 — 18:00',
-      venue: 'JECC Exhibition Hall B, Jaipur',
-      status: 'PACKING',
-      unitsCount: 42,
-      totalAmount: 76000.0,
-    ),
-    BookingItem(
-      id: 'BK-8939',
-      eventTitle: 'Mehta Destination Sangeet Evening',
-      clientName: 'Vikram Mehta',
-      category: 'Wedding',
-      date: '12 Oct, 18:00 — 02:00',
-      venue: 'Fairmont Jaipur, Grand Ballroom',
-      status: 'CONFIRMED',
-      unitsCount: 18,
-      totalAmount: 34000.0,
-    ),
-    BookingItem(
-      id: 'BK-8935',
-      eventTitle: 'Indigo Autumn Fashion Gala',
-      clientName: 'Sunita Singhania',
-      category: 'Private',
-      date: '15 Oct, 17:00 — 23:00',
-      venue: 'Rambagh Palace Lawn',
-      status: 'CONFIRMED',
-      unitsCount: 30,
-      totalAmount: 62000.0,
-    ),
-    BookingItem(
-      id: 'BK-8920',
-      eventTitle: 'Innovate Summit Keynote & Stage',
-      clientName: 'Anand Verma',
-      category: 'Corporate',
-      date: '08 Oct, 09:00 — 17:00',
-      venue: 'ITC Rajputana Jaipur',
-      status: 'COMPLETED',
-      unitsCount: 16,
-      totalAmount: 29500.0,
-    ),
-  ];
+  List<BookingItem> get _bookings => BookingRepository().bookings;
+
+  @override
+  void initState() {
+    super.initState();
+    BookingRepository().bookingsNotifier.addListener(_onBookingsChanged);
+  }
+
+  @override
+  void dispose() {
+    BookingRepository().bookingsNotifier.removeListener(_onBookingsChanged);
+    super.dispose();
+  }
+
+  void _onBookingsChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

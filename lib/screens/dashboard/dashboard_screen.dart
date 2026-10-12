@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../bookings/booking_details_screen.dart';
@@ -49,7 +50,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     setState(() => _currentNavIndex = 0);
                   },
                 )
-              : SafeArea(
+              : _currentNavIndex == 3
+                  ? _buildDispatchView()
+                  : _currentNavIndex == 4
+                      ? _buildMoreView()
+                      : SafeArea(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppConstants.screenPaddingH,
@@ -139,6 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: IconButton(
             onPressed: () {
+              AuthService().signOut();
               Navigator.of(context).pushReplacementNamed(AppRoutes.login);
             },
             icon: const Icon(
@@ -643,7 +649,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.local_shipping_outlined,
               label: 'Dispatch',
               onTap: () {
-                setState(() => _currentNavIndex = 1);
+                setState(() => _currentNavIndex = 3);
               },
             ),
             const SizedBox(width: 8),
@@ -652,10 +658,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.event_available_outlined,
               label: 'Availability',
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateBookingScreen()),
-                );
+                setState(() => _currentNavIndex = 2);
               },
             ),
           ],
@@ -787,4 +790,173 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  Widget _buildDispatchView() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.screenPaddingH,
+          vertical: 20.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DISPATCH & LOGISTICS',
+                      style: AppTextStyles.brandTitle.copyWith(
+                        fontSize: 20,
+                        letterSpacing: -0.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Active Warehouse Dock Runs & Loading Queues',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppColors.inkBlack),
+                  onPressed: () => setState(() => _currentNavIndex = 0),
+                  tooltip: 'Back to Overview',
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildTimelineItem(
+              time: '10:00',
+              title: 'SHARMA WEDDING',
+              tag: 'STAGE-RIG 04',
+              status: 'Loading',
+              progressText: '6 / 12 items staged at Bay 02',
+              progressRatio: 0.5,
+              statusColor: AppColors.warning,
+              statusBg: AppColors.warningSubtle,
+            ),
+            const SizedBox(height: 12),
+            _buildTimelineItem(
+              time: '13:00',
+              title: 'TECHCORP CONFERENCE',
+              tag: 'AV-SUITE 02',
+              status: 'Packing',
+              progressText: '18 / 25 items staged at Bay 01',
+              progressRatio: 0.72,
+              statusColor: AppColors.burntCopper,
+              statusBg: AppColors.copperSubtle,
+            ),
+            const SizedBox(height: 12),
+            _buildTimelineItem(
+              time: '16:00',
+              title: 'MEHTA SANGEET',
+              tag: 'DOCK-BAY 01',
+              status: 'Ready',
+              progressText: 'Staged at dock 02 • Departure 16:30',
+              progressRatio: 1.0,
+              statusColor: AppColors.success,
+              statusBg: AppColors.successSubtle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreView() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.screenPaddingH,
+          vertical: 20.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'OPERATIONS CONFIG',
+                      style: AppTextStyles.brandTitle.copyWith(
+                        fontSize: 20,
+                        letterSpacing: -0.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Squad 124 • Regional Warehouse Settings',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppColors.inkBlack),
+                  onPressed: () => setState(() => _currentNavIndex = 0),
+                  tooltip: 'Back to Overview',
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildConfigOption(Icons.warehouse_outlined, 'Warehouse Fleet & Bays', 'Manage loading dock bays, rack coordinates, and cases'),
+            _buildConfigOption(Icons.handyman_outlined, 'Maintenance & Bench Checks', 'Equipment inspection schedules, test reports, and repairs'),
+            _buildConfigOption(Icons.badge_outlined, 'Staff Access & Crew Roles', 'Permissions for Coordinators, Dispatchers, and Leads'),
+            _buildConfigOption(Icons.cloud_sync_outlined, 'Cloud Sync & Offline Manifests', 'Synchronize field manifests with central operations DB'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfigOption(IconData icon, String title, String subtitle) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.softStone),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.bone,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.burntCopper, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.cardTitle.copyWith(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySmall.copyWith(fontSize: 11, color: AppColors.slate),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.slate),
+        ],
+      ),
+    );
+  }
 }
+

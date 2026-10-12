@@ -197,4 +197,31 @@ void main() {
 
     expect(find.text('Active Bookings'), findsOneWidget);
   });
+
+  testWidgets('Tapping Dispatch and More tabs renders dedicated operational views',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const DashboardScreen(userName: 'Mayank'),
+      ),
+    );
+
+    // Tap Dispatch tab
+    await tester.tap(find.text('Dispatch').last);
+    await tester.pumpAndSettle();
+    expect(find.text('DISPATCH & LOGISTICS'), findsOneWidget);
+
+    // Tap More tab
+    await tester.tap(find.text('More').last);
+    await tester.pumpAndSettle();
+    expect(find.text('OPERATIONS CONFIG'), findsOneWidget);
+  });
 }

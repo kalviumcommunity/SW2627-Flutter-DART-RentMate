@@ -15,9 +15,13 @@ import 'firebase_options.dart';
 ///   by reusing the same instance whenever possible.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization skipped or failed on this platform: $e');
+  }
   runApp(const RentFlowApp());
 }
 

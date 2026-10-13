@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/models/equipment_item.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
@@ -19,8 +20,10 @@ class BookingDetailsScreen extends StatelessWidget {
   final String venue;
   final String dates;
   final String status;
+  final String category;
   final int totalItems;
   final double grandTotal;
+  final List<EquipmentItem>? manifestItems;
 
   const BookingDetailsScreen({
     super.key,
@@ -31,8 +34,10 @@ class BookingDetailsScreen extends StatelessWidget {
     this.venue = 'The Oberoi Rajvilas, Jaipur',
     this.dates = '14 Oct 2026, 10:00 AM — 15 Oct 2026, 11:30 PM',
     this.status = 'READY',
+    this.category = 'WEDDING RECEPTION',
     this.totalItems = 24,
     this.grandTotal = 48500.0,
+    this.manifestItems,
   });
 
   @override
@@ -111,7 +116,7 @@ class BookingDetailsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'WEDDING RECEPTION',
+                            category.toUpperCase(),
                             style: AppTextStyles.monoLabel.copyWith(
                               fontSize: 9,
                               color: AppColors.burntCopper,
@@ -221,11 +226,25 @@ class BookingDetailsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              _buildManifestItem('JBL VRX932LA Line Array Speaker', 'SND-JBL-VRX932', 4, 1500.0),
-              _buildManifestItem('Sharpy 230W 7R Beam Moving Head', 'LGT-SHARPY-230', 6, 850.0),
-              _buildManifestItem('P3.91 High-Res LED Video Wall (500x500mm)', 'VIS-LED-P391', 8, 1200.0),
-              _buildManifestItem('Heavy Duty Aluminum Box Truss (3m)', 'STG-TRS-3M', 4, 600.0),
-              _buildManifestItem('Shure ULXD4 Wireless Dual Mic Set', 'SND-SHURE-ULXD', 2, 950.0),
+              if (manifestItems != null && manifestItems!.isNotEmpty)
+                ...manifestItems!.map((item) => _buildManifestItem(item.name, item.sku, item.total, item.dailyRate))
+              else if (category.toUpperCase().contains('CONFERENCE') || category.toUpperCase().contains('CORPORATE')) ...[
+                _buildManifestItem('Sony VPL-FHZ75 6500lm Laser Projector', 'VIS-SNY-FHZ75', 2, 3500.0),
+                _buildManifestItem('Shure ULXD4 Wireless Dual Mic Set', 'SND-SHURE-ULXD', 4, 950.0),
+                _buildManifestItem('JBL VRX932LA Line Array Speaker', 'SND-JBL-VRX932', 4, 1500.0),
+                _buildManifestItem('Blackmagic ATEM Mini Extreme ISO', 'PWR-BM-ATEM', 1, 2200.0),
+              ] else if (category.toUpperCase().contains('FASHION') || category.toUpperCase().contains('GALA')) ...[
+                _buildManifestItem('Robe Robin Pointe Moving Beam', 'LGT-ROBE-PNT', 8, 1200.0),
+                _buildManifestItem('Heavy Duty Aluminum Box Truss (3m)', 'STG-TRS-3M', 6, 600.0),
+                _buildManifestItem('P3.91 High-Res LED Video Wall (500x500mm)', 'VIS-LED-P391', 12, 1200.0),
+                _buildManifestItem('JBL VRX932LA Line Array Speaker', 'SND-JBL-VRX932', 4, 1500.0),
+              ] else ...[
+                _buildManifestItem('JBL VRX932LA Line Array Speaker', 'SND-JBL-VRX932', 4, 1500.0),
+                _buildManifestItem('Sharpy 230W 7R Beam Moving Head', 'LGT-SHARPY-230', 6, 850.0),
+                _buildManifestItem('P3.91 High-Res LED Video Wall (500x500mm)', 'VIS-LED-P391', 8, 1200.0),
+                _buildManifestItem('Heavy Duty Aluminum Box Truss (3m)', 'STG-TRS-3M', 4, 600.0),
+                _buildManifestItem('Shure ULXD4 Wireless Dual Mic Set', 'SND-SHURE-ULXD', 2, 950.0),
+              ],
               const SizedBox(height: 16),
 
               // Financial Summary
@@ -388,16 +407,26 @@ class BookingDetailsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              _buildTimelineStep('Confirmed', true, true),
-              _buildTimelineLine(true),
-              _buildTimelineStep('Packing', true, true),
-              _buildTimelineLine(true),
-              _buildTimelineStep('Ready', true, true),
-              _buildTimelineLine(false),
-              _buildTimelineStep('Dispatched', false, false),
-            ],
+          Builder(
+            builder: (context) {
+              final norm = status.toUpperCase();
+              final isConfirmed = true;
+              final isPacking = norm == 'PACKING' || norm == 'READY' || norm == 'DISPATCHED' || norm == 'COMPLETED';
+              final isReady = norm == 'READY' || norm == 'DISPATCHED' || norm == 'COMPLETED';
+              final isDispatched = norm == 'DISPATCHED' || norm == 'COMPLETED';
+
+              return Row(
+                children: [
+                  _buildTimelineStep('Confirmed', isConfirmed, norm == 'CONFIRMED'),
+                  _buildTimelineLine(isPacking),
+                  _buildTimelineStep('Packing', isPacking, norm == 'PACKING'),
+                  _buildTimelineLine(isReady),
+                  _buildTimelineStep('Ready', isReady, norm == 'READY'),
+                  _buildTimelineLine(isDispatched),
+                  _buildTimelineStep('Dispatched', isDispatched, norm == 'DISPATCHED' || norm == 'COMPLETED'),
+                ],
+              );
+            },
           ),
         ],
       ),

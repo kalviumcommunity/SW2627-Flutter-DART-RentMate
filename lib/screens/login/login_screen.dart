@@ -66,6 +66,62 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void _showForgotPasswordDialog(BuildContext context) {
+    final email = _emailController.text.trim();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.paper,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          'Operational Credential Recovery',
+          style: AppTextStyles.cardTitle.copyWith(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              email.isNotEmpty
+                  ? 'A secure password recovery challenge and reset token will be dispatched to:'
+                  : 'Enter your coordinator email address above, or contact the warehouse supervisor to reset field terminal credentials.',
+              style: AppTextStyles.bodyMedium.copyWith(fontSize: 13),
+            ),
+            if (email.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.bone,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  email,
+                  style: AppTextStyles.monoLabel.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.burntCopper,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Acknowledge',
+              style: AppTextStyles.buttonText.copyWith(
+                color: AppColors.burntCopper,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -234,16 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                               ),
                               TextButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Password reset link will be sent to your administrator.',
-                                      ),
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
+                                onPressed: () => _showForgotPasswordDialog(context),
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,

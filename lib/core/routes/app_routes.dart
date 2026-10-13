@@ -27,7 +27,23 @@ final class AppRoutes {
         inventory: (context) => const InventoryScreen(),
         bookings: (context) => const BookingsListScreen(),
         createBooking: (context) => const CreateBookingScreen(),
-        bookingDetails: (context) => const BookingDetailsScreen(),
+        bookingDetails: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is BookingItem) {
+            return BookingDetailsScreen(
+              bookingId: args.id,
+              eventTitle: args.eventTitle,
+              clientName: args.clientName,
+              venue: args.venue,
+              dates: args.date,
+              status: args.status,
+              category: args.category,
+              totalItems: args.unitsCount,
+              grandTotal: args.totalAmount,
+            );
+          }
+          return const BookingDetailsScreen();
+        },
       };
 }
 

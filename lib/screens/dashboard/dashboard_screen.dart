@@ -6,7 +6,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../bookings/booking_details_screen.dart';
 import '../bookings/bookings_list_screen.dart';
-import '../bookings/create_booking_screen.dart';
 import '../inventory/inventory_screen.dart';
 
 /// Coordinator Dashboard screen (RentFlow Operations Cockpit).
@@ -42,7 +41,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bone,
       body: _currentNavIndex == 1
-          ? const BookingsListScreen()
+          ? BookingsListScreen(
+              isEmbedded: true,
+              onBackToOverview: () {
+                setState(() => _currentNavIndex = 0);
+              },
+            )
           : _currentNavIndex == 2
               ? InventoryScreen(
                   isEmbedded: true,
@@ -91,6 +95,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
 
+  String _formatCockpitDate(DateTime dt) {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${weekdays[dt.weekday - 1]}, ${dt.day} ${months[dt.month - 1]}';
+  }
+
   /// Top Bar with left-aligned greeting and sign-out action
   Widget _buildTopHeader(BuildContext context, String displayName) {
     return Row(
@@ -123,7 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Operations Cockpit • Squad 124 • Mon, 30 Sep',
+                    'Operations Cockpit • Squad 124 • ${_formatCockpitDate(DateTime.now())}',
                     style: AppTextStyles.monoLabel.copyWith(
                       color: AppColors.slate,
                       fontSize: 11,
@@ -630,10 +640,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               label: 'New Booking',
               isPrimary: true,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateBookingScreen()),
-                );
+                Navigator.pushNamed(context, AppRoutes.createBooking);
               },
             ),
             const SizedBox(width: 8),

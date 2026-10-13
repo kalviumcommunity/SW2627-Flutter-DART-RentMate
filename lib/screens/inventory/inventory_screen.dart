@@ -378,14 +378,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               _buildHeaderIconAction(
                 icon: Icons.qr_code_scanner_rounded,
                 tooltip: 'Scan Flight Case',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Barcode & RFID scanner initialized.'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
+                onTap: () => _showScannerModal(context),
               ),
               const SizedBox(width: 8),
               _buildHeaderIconAction(
@@ -916,14 +909,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Expanded(
                 flex: 1,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Camera barcode scanner launched.'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showScannerModal(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.bone,
                     side: const BorderSide(color: Color(0x33FAF7F0), width: 1),
@@ -955,14 +941,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('New Asset Intake dialog opened.'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showAddEquipmentSheet(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.burntCopper,
                     foregroundColor: Colors.white,
@@ -994,6 +973,182 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showScannerModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('FLIGHT CASE SCANNER', style: AppTextStyles.brandTitle.copyWith(fontSize: 16)),
+                    const Icon(Icons.qr_code_scanner_rounded, color: AppColors.burntCopper),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Optical camera & RFID antenna ready. Select simulated case tag to inspect:',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      label: const Text('FC-LGT-04 (Pointe)'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        setState(() => _searchController.text = 'ROBE');
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('FC-AUD-01 (K2 Line Array)'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        setState(() => _searchController.text = 'K2');
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('FC-VIS-09 (Unilumin LED)'),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        setState(() => _searchController.text = 'LED');
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddEquipmentSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final skuCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '4');
+    String selectedCat = 'Lighting';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('NEW ASSET INTAKE', style: AppTextStyles.brandTitle.copyWith(fontSize: 16)),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Equipment Model Name',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: skuCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'SKU Identifier',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: qtyCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Total Units',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  ElevatedButton(
+                    onPressed: () {
+                      final name = nameCtrl.text.trim();
+                      if (name.isEmpty) return;
+                      final sku = skuCtrl.text.trim().isNotEmpty
+                          ? skuCtrl.text.trim()
+                          : 'EQ-${DateTime.now().millisecondsSinceEpoch % 10000}';
+                      final qty = int.tryParse(qtyCtrl.text.trim()) ?? 1;
+
+                      setState(() {
+                        _inventoryItems.insert(0, {
+                          'id': 'EQ-${DateTime.now().millisecondsSinceEpoch % 10000}',
+                          'sku': sku,
+                          'name': name,
+                          'category': selectedCat,
+                          'total': qty,
+                          'deployed': 0,
+                          'available': qty,
+                          'maintenance': 0,
+                          'status': 'AVAILABLE',
+                          'rackBay': 'BAY-01-A',
+                          'flightCase': 'FC-NEW-01',
+                          'dailyRate': 1200.0,
+                          'specs': 'Standard Fleet Asset',
+                          'needsBenchCheck': false,
+                        });
+                      });
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Asset "$name" ($sku) logged into inventory.')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.burntCopper,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 44),
+                    ),
+                    child: const Text('CONFIRM ASSET INTAKE'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

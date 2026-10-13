@@ -224,4 +224,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('OPERATIONS CONFIG'), findsOneWidget);
   });
+
+  testWidgets('Tapping Bookings tab renders embedded event bookings with dynamic counts',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const DashboardScreen(userName: 'Mayank'),
+      ),
+    );
+
+    // Tap Bookings tab in bottom dock
+    await tester.tap(find.text('Bookings').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Event Bookings'), findsOneWidget);
+    expect(find.textContaining('All ('), findsOneWidget);
+    expect(find.textContaining('Upcoming ('), findsOneWidget);
+
+    // Tap back button in header to return to Overview
+    await tester.tap(find.byTooltip('Back to Overview'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Active Bookings'), findsOneWidget);
+  });
 }

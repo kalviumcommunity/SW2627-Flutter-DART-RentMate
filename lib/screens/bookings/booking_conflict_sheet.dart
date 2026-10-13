@@ -191,8 +191,8 @@ class BookingConflictSheet extends StatelessWidget {
                     ],
                   ),
 
+                  const SizedBox(height: 12),
                   Container(
-                    margin: const EdgeInsets.only(top: 12),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: AppColors.warningSubtle,
@@ -205,9 +205,9 @@ class BookingConflictSheet extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            conflictingEvent != null && conflictingEvent!.isNotEmpty
+                            (conflictingEvent != null && conflictingEvent!.isNotEmpty)
                                 ? 'Overlapping with: $conflictingEvent'
-                                : 'Shortage due to concurrent stage deployment & warehouse allocations',
+                                : 'Stock limitation: $shortage requested ${shortage == 1 ? "unit is" : "units are"} committed across active operations.',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontSize: 11,
                               color: AppColors.inkBlack,

@@ -1,6 +1,6 @@
 import 'package:web/web.dart' as web;
 
-/// Browser-specific implementation for Web OAuth redirection using package:web (WASM ready).
+/// Browser-specific implementation for Web OAuth redirection using modern package:web.
 String getWebCurrentUrl() => web.window.location.href;
 
 String getWebRedirectUri() =>

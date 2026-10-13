@@ -19,9 +19,9 @@ class BookingDetailsScreen extends StatelessWidget {
   final String venue;
   final String dates;
   final String status;
+  final String category;
   final int totalItems;
   final double grandTotal;
-  final String category;
   final List<Map<String, dynamic>>? manifestItems;
 
   const BookingDetailsScreen({
@@ -33,9 +33,9 @@ class BookingDetailsScreen extends StatelessWidget {
     this.venue = 'The Oberoi Rajvilas, Jaipur',
     this.dates = '14 Oct 2026, 10:00 AM — 15 Oct 2026, 11:30 PM',
     this.status = 'READY',
+    this.category = 'Wedding',
     this.totalItems = 24,
     this.grandTotal = 48500.0,
-    this.category = 'Wedding',
     this.manifestItems,
   });
 

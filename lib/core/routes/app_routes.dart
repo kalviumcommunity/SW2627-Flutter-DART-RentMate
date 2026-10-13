@@ -58,7 +58,19 @@ final class AppRoutes {
         createBooking: (context) => const CreateBookingScreen(),
         bookingDetails: (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is BookingDetailsArgs) {
+          if (args is BookingItem) {
+            return BookingDetailsScreen(
+              bookingId: args.id,
+              eventTitle: args.eventTitle,
+              clientName: args.clientName,
+              venue: args.venue,
+              dates: args.date,
+              status: args.status,
+              category: args.category,
+              totalItems: args.unitsCount,
+              grandTotal: args.totalAmount,
+            );
+          } else if (args is BookingDetailsArgs) {
             return BookingDetailsScreen(
               bookingId: args.bookingId ?? 'BK-8942',
               eventTitle: args.eventTitle ?? 'Sharma Royal Wedding & Sangeet',

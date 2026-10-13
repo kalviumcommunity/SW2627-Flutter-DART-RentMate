@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import 'booking_details_screen.dart';
-import 'create_booking_screen.dart';
 
+import '../../core/routes/app_routes.dart';
 import '../../core/models/booking_item.dart';
 import '../../core/services/booking_repository.dart';
 export '../../core/models/booking_item.dart';
@@ -16,7 +15,14 @@ export '../../core/models/booking_item.dart';
 /// - Rich event summary cards with Industrial Atelier styling.
 /// - Floating Action Button for starting the 3-step Create Booking wizard.
 class BookingsListScreen extends StatefulWidget {
-  const BookingsListScreen({super.key});
+  final bool isEmbedded;
+  final VoidCallback? onBackToOverview;
+
+  const BookingsListScreen({
+    super.key,
+    this.isEmbedded = false,
+    this.onBackToOverview,
+  });
 
   @override
   State<BookingsListScreen> createState() => _BookingsListScreenState();
@@ -27,6 +33,11 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
   String _searchQuery = '';
 
   List<BookingItem> get _bookings => BookingRepository().bookings;
+
+  int get _allCount => _bookings.length;
+  int get _upcomingCount => _bookings.where((b) => b.status == 'CONFIRMED' || b.status == 'PACKING' || b.status == 'READY').length;
+  int get _ongoingCount => _bookings.where((b) => b.status == 'DISPATCHED').length;
+  int get _completedCount => _bookings.where((b) => b.status == 'COMPLETED').length;
 
   @override
   void initState() {
@@ -42,6 +53,46 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
 
   void _onBookingsChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'FILTER BY STATUS',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...['All', 'Upcoming', 'Ongoing', 'Completed'].map((filter) {
+                final isSelected = _selectedFilter == filter;
+                return ListTile(
+                  title: Text(filter, style: AppTextStyles.cardTitle.copyWith(fontSize: 15)),
+                  trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.burntCopper) : null,
+                  onTap: () {
+                    setState(() => _selectedFilter = filter);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -61,98 +112,118 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
       return matchesFilter && matchesSearch;
     }).toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.bone,
-      appBar: AppBar(
-        backgroundColor: AppColors.bone,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Event Bookings',
-          style: AppTextStyles.brandTitle.copyWith(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
+    final content = SafeArea(
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    if (widget.isEmbedded && widget.onBackToOverview != null) ...[
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded, color: AppColors.inkBlack),
+                        onPressed: widget.onBackToOverview,
+                        tooltip: 'Back to Overview',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      'Event Bookings',
+                      style: AppTextStyles.brandTitle.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.filter_list_rounded, color: AppColors.inkBlack),
+                  onPressed: () => _showFilterBottomSheet(context),
+                  tooltip: 'Filter options',
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list_rounded, color: AppColors.inkBlack),
-            onPressed: () {},
-            tooltip: 'Filter options',
+
+          // Search & Filter Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Column(
+              children: [
+                // Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.paper,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.softStone),
+                  ),
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: AppTextStyles.bodyMedium,
+                    decoration: InputDecoration(
+                      hintText: 'Search by event, client, or #BK...',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.slate),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              onPressed: () => setState(() => _searchQuery = ''),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', _allCount),
+                      _buildFilterChip('Upcoming', _upcomingCount),
+                      _buildFilterChip('Ongoing', _ongoingCount),
+                      _buildFilterChip('Completed', _completedCount),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Bookings List View
+          Expanded(
+            child: filteredList.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    itemCount: filteredList.length,
+                    itemBuilder: (context, index) {
+                      return _buildBookingCard(filteredList[index]);
+                    },
+                  ),
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Search & Filter Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                children: [
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.paper,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.softStone),
-                    ),
-                    child: TextField(
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                      style: AppTextStyles.bodyMedium,
-                      decoration: InputDecoration(
-                        hintText: 'Search by event, client, or #BK...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.slate),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                onPressed: () => setState(() => _searchQuery = ''),
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+    );
 
-                  // Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildFilterChip('All', _bookings.length),
-                        _buildFilterChip('Upcoming', 4),
-                        _buildFilterChip('Ongoing', 0),
-                        _buildFilterChip('Completed', 1),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    if (widget.isEmbedded) {
+      return content;
+    }
 
-            // Bookings List View
-            Expanded(
-              child: filteredList.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      itemCount: filteredList.length,
-                      itemBuilder: (context, index) {
-                        return _buildBookingCard(filteredList[index]);
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
+    return Scaffold(
+      backgroundColor: AppColors.bone,
+      body: content,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateBookingScreen()),
-          );
+          Navigator.pushNamed(context, AppRoutes.createBooking);
         },
         backgroundColor: AppColors.burntCopper,
         foregroundColor: Colors.white,
@@ -225,20 +296,10 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
       ),
       child: InkWell(
         onTap: () {
-          Navigator.push(
+          Navigator.pushNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => BookingDetailsScreen(
-                bookingId: item.id,
-                eventTitle: item.eventTitle,
-                clientName: item.clientName,
-                venue: item.venue,
-                dates: item.date,
-                status: item.status,
-                totalItems: item.unitsCount,
-                grandTotal: item.totalAmount,
-              ),
-            ),
+            AppRoutes.bookingDetails,
+            arguments: item,
           );
         },
         borderRadius: BorderRadius.circular(10),

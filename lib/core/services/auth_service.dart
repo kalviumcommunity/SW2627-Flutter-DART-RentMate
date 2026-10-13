@@ -37,11 +37,8 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  /// Google Web Client ID
-  static const String activeClientId = String.fromEnvironment(
-    'GOOGLE_WEB_CLIENT_ID',
-    defaultValue: '656620374032-2eq1mrnteosmb4gukgl90cp4pmpq73vu.apps.googleusercontent.com',
-  );
+  /// Google Web Client ID injected securely at build/run time via --dart-define=GOOGLE_WEB_CLIENT_ID=...
+  static const String activeClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 
   AuthUser? _currentUser;
   AuthUser? get currentUser => _currentUser;
@@ -94,6 +91,11 @@ class AuthService {
   /// Direct browser redirection to Google's official Sign In page
   void redirectToGoogleSignIn() {
     if (!kIsWeb) return;
+
+    if (activeClientId.isEmpty) {
+      debugPrint('Google OAuth Client ID is not configured. Provide via --dart-define=GOOGLE_WEB_CLIENT_ID=...');
+      return;
+    }
 
     final redirectUri = getWebRedirectUri();
 

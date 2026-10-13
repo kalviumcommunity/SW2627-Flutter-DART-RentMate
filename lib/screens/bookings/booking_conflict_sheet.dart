@@ -25,7 +25,7 @@ class BookingConflictSheet extends StatelessWidget {
     this.sku = 'SND-JBL-VRX932',
     this.requestedQty = 12,
     this.availableQty = 8,
-    this.conflictingEvent = 'Apex Tech Annual Summit (BK-4091)',
+    this.conflictingEvent,
     this.onReduceQuantity,
     this.onChangeTime,
     this.onJoinWaitlist,
@@ -37,7 +37,7 @@ class BookingConflictSheet extends StatelessWidget {
     String sku = 'SND-JBL-VRX932',
     int requestedQty = 12,
     int availableQty = 8,
-    String? conflictingEvent = 'Apex Tech Annual Summit (BK-4091)',
+    String? conflictingEvent,
     VoidCallback? onReduceQuantity,
     VoidCallback? onChangeTime,
     VoidCallback? onJoinWaitlist,
@@ -191,33 +191,33 @@ class BookingConflictSheet extends StatelessWidget {
                     ],
                   ),
 
-                  if (conflictingEvent != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningSubtle,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Overlapping with: $conflictingEvent',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontSize: 11,
-                                color: AppColors.inkBlack,
-                                fontWeight: FontWeight.w500,
-                              ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningSubtle,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            (conflictingEvent != null && conflictingEvent!.isNotEmpty)
+                                ? 'Overlapping with: $conflictingEvent'
+                                : 'Stock limitation: $shortage requested ${shortage == 1 ? "unit is" : "units are"} committed across active operations.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 11,
+                              color: AppColors.inkBlack,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),

@@ -129,8 +129,11 @@ void main() {
     await tester.tap(find.text('Sign Up'));
     await tester.pumpAndSettle();
 
-    // Enter name in first text field (Full Name)
-    await tester.enterText(find.byType(TextField).first, 'Alex Rivera');
+    // Enter valid registration details across all required fields
+    await tester.enterText(find.byType(TextField).at(0), 'Alex Rivera');
+    await tester.enterText(find.byType(TextField).at(1), 'alex.rivera@rentflow.ops');
+    await tester.enterText(find.byType(TextField).at(2), 'securePass123');
+    await tester.enterText(find.byType(TextField).at(3), 'securePass123');
     await tester.pumpAndSettle();
 
     // Tap Create Account
@@ -139,6 +142,34 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 700));
 
     expect(find.text('Hello Alex Rivera'), findsOneWidget);
+  });
+
+  testWidgets('SignUp screen prevents blank submission and shows validation errors',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const SignUpScreen(),
+      ),
+    );
+
+    // Tap Create Account without typing any input
+    await tester.ensureVisible(find.text('Create Account').last);
+    await tester.tap(find.text('Create Account').last);
+    await tester.pumpAndSettle();
+
+    // Assert that validation errors appear and user stays on SignUp screen
+    expect(find.text('Full name is required'), findsOneWidget);
+    expect(find.text('Work email is required'), findsOneWidget);
+    expect(find.text('Password is required'), findsOneWidget);
+    expect(find.text('Please confirm your password'), findsOneWidget);
   });
 
   testWidgets('Inventory screen renders fleet metrics and equipment roster',

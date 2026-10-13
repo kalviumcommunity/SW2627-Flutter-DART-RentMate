@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/auth_service.dart';
@@ -38,38 +39,143 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleSignIn() {
-    setState(() => _isLoading = true);
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-
-        final enteredText = _emailController.text.trim();
-        String userName = AppConstants.coordinatorName;
-        if (enteredText.isNotEmpty) {
-          if (enteredText.contains('@')) {
-            final part = enteredText.split('@').first;
-            userName = part.isNotEmpty
-                ? part[0].toUpperCase() + part.substring(1)
-                : AppConstants.coordinatorName;
-          } else {
-            userName = enteredText;
-          }
-        }
-
-        Navigator.of(context).pushReplacementNamed(
-          AppRoutes.dashboard,
-          arguments: userName,
-        );
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
+    _loadRememberedPreference();
     _checkRedirectAuth();
+  }
+
+  Future<void> _loadRememberedPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final remember = prefs.getBool('rentflow_remember_me') ?? true;
+      final savedEmail = prefs.getString('rentflow_saved_email');
+      if (mounted) {
+        setState(() {
+          _rememberMe = remember;
+          if (_rememberMe && savedEmail != null && savedEmail.isNotEmpty) {
+            _emailController.text = savedEmail;
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistRememberedPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('rentflow_remember_me', _rememberMe);
+      if (_rememberMe) {
+        await prefs.setString('rentflow_saved_email', _emailController.text.trim());
+      } else {
+        await prefs.remove('rentflow_saved_email');
+      }
+    } catch (_) {}
+  }
+
+  void _showForgotPasswordDialog() {
+    final resetEmailController =
+        TextEditingController(text: _emailController.text.trim());
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.paper,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: [
+              const Icon(Icons.lock_reset_rounded, color: AppColors.burntCopper, size: 24),
+              const SizedBox(width: 10),
+              Text(
+                'Reset Password',
+                style: AppTextStyles.brandTitle.copyWith(fontSize: 18),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enter your authorized operator email address to receive password recovery instructions.',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: resetEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: AppTextStyles.bodyMedium,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Work email is required';
+                    }
+                    if (!val.contains('@') || !val.contains('.')) {
+                      return 'Please enter a valid work email';
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Work Email',
+                    hintText: 'operator@rentflow.ops',
+                    prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.slate),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.softStone),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.burntCopper, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.buttonText.copyWith(color: AppColors.slate, fontSize: 13),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  final targetEmail = resetEmailController.text.trim();
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.inkBlack,
+                      content: Text(
+                        'Password reset dispatch sent to $targetEmail. Please check your inbox or notify your squad coordinator.',
+                        style: const TextStyle(color: AppColors.bone),
+                      ),
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.burntCopper,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(
+                'Send Reset Link',
+                style: AppTextStyles.buttonText.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _checkRedirectAuth() async {
@@ -106,89 +212,117 @@ class _LoginScreenState extends State<LoginScreen> {
     _authService.redirectToGoogleSignIn();
   }
 
+  void _handleSignIn() {
+    _persistRememberedPreference();
+    setState(() => _isLoading = true);
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        final enteredText = _emailController.text.trim();
+        String userName = AppConstants.coordinatorName;
+        if (enteredText.isNotEmpty) {
+          if (enteredText.contains('@')) {
+            final part = enteredText.split('@').first;
+            userName = part.isNotEmpty
+                ? part[0].toUpperCase() + part.substring(1)
+                : AppConstants.coordinatorName;
+          } else {
+            userName = enteredText;
+          }
+        }
+
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.dashboard,
+          arguments: userName,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.inkBlack,
+      backgroundColor: AppColors.bone,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Atmospheric Brand Header (Ink Black + Warm Lighting)
+              // 1. Cinematic Atmospheric Stage Header
               _buildAtmosphericHeader(),
 
-              // Elevated Paper/Bone Form Container
-              Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.bone,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
+              // 2. Primary Form Surface
+              Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppConstants.screenPaddingH,
-                  vertical: 28.0,
+                  vertical: 24.0,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Heading & Subtitle
+                    // Section Title
                     Text(
                       'Welcome Back',
                       style: AppTextStyles.screenTitle.copyWith(
-                        fontSize: 24,
-                        color: AppColors.inkBlack,
-                        letterSpacing: -0.5,
+                        fontSize: 22,
+                        letterSpacing: -0.4,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Sign in to coordinate event equipment, dispatch schedules, and inventory.',
+                      'Enter your credentials to access the equipment dispatch console.',
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: AppColors.slate,
-                        height: 1.45,
+                        fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 24),
 
-                    // Inputs Section inside Paper Container
+                    // Authentication Form
                     Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: AppColors.paper,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppColors.softStone,
                           width: 1,
                         ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Work Email
+                          // Work Email Input
                           RentFlowTextField(
                             label: 'Work Email',
-                            hintText: 'name@company.com',
+                            hintText: 'coordinator@rentflow.ops',
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            prefixIcon: Icons.email_outlined,
+                            prefixIcon: Icons.alternate_email_rounded,
                           ),
                           const SizedBox(height: 16),
 
-                          // Password with Visibility Toggle
+                          // Password Input
                           RentFlowTextField(
                             label: 'Password',
-                            hintText: 'Enter your password',
+                            hintText: '••••••••',
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             prefixIcon: Icons.lock_outline_rounded,
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                                 color: AppColors.slate,
                                 size: 20,
                               ),
@@ -199,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
                           // Remember Me & Forgot Password Row
                           Row(
@@ -217,9 +351,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       onChanged: (val) {
+                                        final newVal = val ?? false;
                                         setState(() {
-                                          _rememberMe = val ?? false;
+                                          _rememberMe = newVal;
                                         });
+                                        SharedPreferences.getInstance().then((p) {
+                                          p.setBool('rentflow_remember_me', newVal);
+                                        }).catchError((_) {});
                                       },
                                     ),
                                   ),
@@ -234,16 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                               ),
                               TextButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Password reset link will be sent to your administrator.',
-                                      ),
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
+                                onPressed: _showForgotPasswordDialog,
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,

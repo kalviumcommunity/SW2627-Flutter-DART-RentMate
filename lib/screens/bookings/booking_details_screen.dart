@@ -6,11 +6,11 @@ import '../../widgets/rentflow_button.dart';
 /// Full Booking Detail Screen (RentFlow Section 5.4 - 5.8).
 ///
 /// Features:
-/// - Status timeline tracker (Confirmed -> Packing -> Dispatched -> Returned).
+/// - Dynamic status timeline tracker (Confirmed -> Packing -> Ready -> Dispatched -> Completed).
 /// - Client contact card with instant call/email action buttons.
 /// - Venue, timing, and logistics overview.
-/// - Complete Itemized Equipment Manifest with SKUs.
-/// - Financial summary and deposit tracker.
+/// - Dynamic Itemized Equipment Manifest tailored to event category with SKUs.
+/// - Transparent financial breakdown and deposit tracker.
 class BookingDetailsScreen extends StatelessWidget {
   final String bookingId;
   final String eventTitle;
@@ -21,6 +21,8 @@ class BookingDetailsScreen extends StatelessWidget {
   final String status;
   final int totalItems;
   final double grandTotal;
+  final String category;
+  final List<Map<String, dynamic>>? manifestItems;
 
   const BookingDetailsScreen({
     super.key,
@@ -33,10 +35,70 @@ class BookingDetailsScreen extends StatelessWidget {
     this.status = 'READY',
     this.totalItems = 24,
     this.grandTotal = 48500.0,
+    this.category = 'Wedding',
+    this.manifestItems,
   });
+
+  List<Map<String, dynamic>> _getEffectiveManifestItems() {
+    if (manifestItems != null && manifestItems!.isNotEmpty) {
+      return manifestItems!;
+    }
+    final cat = category.toLowerCase();
+    if (cat.contains('corporate') ||
+        eventTitle.toLowerCase().contains('summit') ||
+        eventTitle.toLowerCase().contains('launch')) {
+      return const [
+        {'name': 'd&b audiotechnik V-Series Array Module', 'sku': 'AU-DB-V8', 'qty': 4, 'rate': 2200.0},
+        {'name': 'P3.91 High-Res LED Video Wall (500x500mm)', 'sku': 'VIS-LED-P391', 'qty': 16, 'rate': 1200.0},
+        {'name': 'Shure Axient Digital Wireless Podium Kit', 'sku': 'SND-SHURE-AXD', 'qty': 4, 'rate': 1100.0},
+        {'name': 'Barco E2 Gen 2 4K Presentation Switcher', 'sku': 'VIS-BARCO-E2', 'qty': 1, 'rate': 4500.0},
+        {'name': 'Robe Robin MegaPointe Moving Head', 'sku': 'LGT-ROBE-MP', 'qty': 6, 'rate': 950.0},
+      ];
+    } else if (cat.contains('fashion') || cat.contains('gala') || cat.contains('private')) {
+      return const [
+        {'name': 'Heavy Duty Aluminum Box Truss (3m)', 'sku': 'STG-TRS-3M', 'qty': 8, 'rate': 600.0},
+        {'name': 'Sharpy 230W 7R Beam Moving Head', 'sku': 'LGT-SHARPY-230', 'qty': 8, 'rate': 850.0},
+        {'name': 'Martin MAC Quantum Profile Moving Head', 'sku': 'LGT-MARTIN-MQ', 'qty': 6, 'rate': 1100.0},
+        {'name': 'JBL PRX815W Powered Loudspeaker', 'sku': 'SND-JBL-PRX', 'qty': 4, 'rate': 750.0},
+        {'name': 'P2.6 Ultra-Fine LED Runway Display', 'sku': 'VIS-LED-P26', 'qty': 4, 'rate': 1800.0},
+      ];
+    }
+    return const [
+      {'name': 'JBL VRX932LA Line Array Speaker', 'sku': 'SND-JBL-VRX932', 'qty': 4, 'rate': 1500.0},
+      {'name': 'Sharpy 230W 7R Beam Moving Head', 'sku': 'LGT-SHARPY-230', 'qty': 6, 'rate': 850.0},
+      {'name': 'P3.91 High-Res LED Video Wall (500x500mm)', 'sku': 'VIS-LED-P391', 'qty': 8, 'rate': 1200.0},
+      {'name': 'Heavy Duty Aluminum Box Truss (3m)', 'sku': 'STG-TRS-3M', 'qty': 4, 'rate': 600.0},
+      {'name': 'Shure ULXD4 Wireless Dual Mic Set', 'sku': 'SND-SHURE-ULXD', 'qty': 2, 'rate': 950.0},
+    ];
+  }
+
+  int get _currentStepIndex {
+    switch (status.toUpperCase()) {
+      case 'CONFIRMED':
+        return 0;
+      case 'PACKING':
+        return 1;
+      case 'READY':
+        return 2;
+      case 'DISPATCHED':
+        return 3;
+      case 'COMPLETED':
+        return 4;
+      default:
+        return 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveItems = _getEffectiveManifestItems();
+    final double gearSubtotal = effectiveItems.fold(
+      0.0,
+      (sum, item) => sum + ((item['qty'] as num) * (item['rate'] as num)),
+    );
+    final double logisticsAndCrew =
+        (grandTotal > gearSubtotal) ? (grandTotal - gearSubtotal) : 0.0;
+
     return Scaffold(
       backgroundColor: AppColors.bone,
       appBar: AppBar(
@@ -69,7 +131,7 @@ class BookingDetailsScreen extends StatelessWidget {
             icon: const Icon(Icons.print_outlined, color: AppColors.slate),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Generating Dispatch Manifest PDF...')),
+                SnackBar(content: Text('Generating Dispatch Manifest PDF for #$bookingId...')),
               );
             },
             tooltip: 'Print Manifest',
@@ -111,7 +173,7 @@ class BookingDetailsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'WEDDING RECEPTION',
+                            category.toUpperCase(),
                             style: AppTextStyles.monoLabel.copyWith(
                               fontSize: 9,
                               color: AppColors.burntCopper,
@@ -160,7 +222,7 @@ class BookingDetailsScreen extends StatelessWidget {
                       radius: 20,
                       backgroundColor: AppColors.copperSubtle,
                       child: Text(
-                        clientName.substring(0, 1),
+                        clientName.isNotEmpty ? clientName.substring(0, 1) : 'C',
                         style: AppTextStyles.cardTitle.copyWith(
                           color: AppColors.burntCopper,
                           fontWeight: FontWeight.w800,
@@ -221,11 +283,14 @@ class BookingDetailsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              _buildManifestItem('JBL VRX932LA Line Array Speaker', 'SND-JBL-VRX932', 4, 1500.0),
-              _buildManifestItem('Sharpy 230W 7R Beam Moving Head', 'LGT-SHARPY-230', 6, 850.0),
-              _buildManifestItem('P3.91 High-Res LED Video Wall (500x500mm)', 'VIS-LED-P391', 8, 1200.0),
-              _buildManifestItem('Heavy Duty Aluminum Box Truss (3m)', 'STG-TRS-3M', 4, 600.0),
-              _buildManifestItem('Shure ULXD4 Wireless Dual Mic Set', 'SND-SHURE-ULXD', 2, 950.0),
+              ...effectiveItems.map((item) {
+                return _buildManifestItem(
+                  item['name'] as String,
+                  item['sku'] as String,
+                  item['qty'] as int,
+                  (item['rate'] as num).toDouble(),
+                );
+              }),
               const SizedBox(height: 16),
 
               // Financial Summary
@@ -274,29 +339,29 @@ class BookingDetailsScreen extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (grandTotal > 25000) ...[
-                      const SizedBox(height: 10),
-                      Divider(color: AppColors.slate.withValues(alpha: 0.5), height: 1),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Manifest Gear Subtotal',
-                            style: AppTextStyles.monoLabel.copyWith(
-                              fontSize: 10,
-                              color: AppColors.bone.withValues(alpha: 0.7),
-                            ),
+                    const SizedBox(height: 10),
+                    Divider(color: AppColors.slate.withValues(alpha: 0.5), height: 1),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Manifest Gear Subtotal',
+                          style: AppTextStyles.monoLabel.copyWith(
+                            fontSize: 10,
+                            color: AppColors.bone.withValues(alpha: 0.7),
                           ),
-                          Text(
-                            '₹25,000',
-                            style: AppTextStyles.monoLabel.copyWith(
-                              fontSize: 10,
-                              color: AppColors.bone,
-                            ),
+                        ),
+                        Text(
+                          '₹${gearSubtotal.toInt()}',
+                          style: AppTextStyles.monoLabel.copyWith(
+                            fontSize: 10,
+                            color: AppColors.bone,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
+                    if (logisticsAndCrew > 0) ...[
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,7 +374,7 @@ class BookingDetailsScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '₹${(grandTotal - 25000).toInt()}',
+                            '₹${logisticsAndCrew.toInt()}',
                             style: AppTextStyles.monoLabel.copyWith(
                               fontSize: 10,
                               color: AppColors.bone,
@@ -349,6 +414,7 @@ class BookingDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildStatusTimeline() {
+    final step = _currentStepIndex;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -390,13 +456,13 @@ class BookingDetailsScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _buildTimelineStep('Confirmed', true, true),
-              _buildTimelineLine(true),
-              _buildTimelineStep('Packing', true, true),
-              _buildTimelineLine(true),
-              _buildTimelineStep('Ready', true, true),
-              _buildTimelineLine(false),
-              _buildTimelineStep('Dispatched', false, false),
+              _buildTimelineStep('Confirmed', step >= 0, step == 0),
+              _buildTimelineLine(step >= 1),
+              _buildTimelineStep('Packing', step >= 1, step == 1),
+              _buildTimelineLine(step >= 2),
+              _buildTimelineStep('Ready', step >= 2, step == 2),
+              _buildTimelineLine(step >= 3),
+              _buildTimelineStep('Dispatched', step >= 3, step >= 3),
             ],
           ),
         ],
@@ -469,7 +535,7 @@ class BookingDetailsScreen extends StatelessWidget {
   Widget _buildManifestItem(String name, String sku, int qty, double rate) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.paper,
         borderRadius: BorderRadius.circular(8),
@@ -478,48 +544,63 @@ class BookingDetailsScreen extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: AppColors.copperSubtle,
-              borderRadius: BorderRadius.circular(4),
+              color: AppColors.bone,
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(
-              '${qty}x',
-              style: AppTextStyles.monoLabel.copyWith(
-                fontSize: 10,
-                color: AppColors.burntCopper,
-                fontWeight: FontWeight.w800,
+            child: Center(
+              child: Text(
+                '${qty}x',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.burntCopper,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.inkBlack,
+                  style: AppTextStyles.cardTitle.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   sku,
                   style: AppTextStyles.monoLabel.copyWith(
-                    fontSize: 9,
+                    fontSize: 10,
                     color: AppColors.slate,
                   ),
                 ),
               ],
             ),
           ),
-          Text(
-            '₹${(qty * rate).toInt()}',
-            style: AppTextStyles.monoData.copyWith(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${(qty * rate).toInt()}',
+                style: AppTextStyles.monoData.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.inkBlack,
+                ),
+              ),
+              Text(
+                '₹${rate.toInt()}/day',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontSize: 9,
+                  color: AppColors.slate,
+                ),
+              ),
+            ],
           ),
         ],
       ),

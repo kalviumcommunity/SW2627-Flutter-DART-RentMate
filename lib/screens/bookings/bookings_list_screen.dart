@@ -12,7 +12,7 @@ export '../../core/models/booking_item.dart';
 ///
 /// Features:
 /// - Search bar for event title, client name, and booking ID.
-/// - Filter chips: All, Upcoming, Ongoing, Completed.
+/// - Dynamic filter chips: All, Upcoming, Ongoing, Completed.
 /// - Rich event summary cards with Industrial Atelier styling.
 /// - Floating Action Button for starting the 3-step Create Booking wizard.
 class BookingsListScreen extends StatefulWidget {
@@ -60,6 +60,17 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
 
       return matchesFilter && matchesSearch;
     }).toList();
+
+    final allCount = _bookings.length;
+    final upcomingCount = _bookings
+        .where((b) => b.status == 'CONFIRMED' || b.status == 'PACKING' || b.status == 'READY')
+        .length;
+    final ongoingCount = _bookings
+        .where((b) => b.status == 'DISPATCHED')
+        .length;
+    final completedCount = _bookings
+        .where((b) => b.status == 'COMPLETED')
+        .length;
 
     return Scaffold(
       backgroundColor: AppColors.bone,
@@ -121,10 +132,10 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('All', _bookings.length),
-                        _buildFilterChip('Upcoming', 4),
-                        _buildFilterChip('Ongoing', 0),
-                        _buildFilterChip('Completed', 1),
+                        _buildFilterChip('All', allCount),
+                        _buildFilterChip('Upcoming', upcomingCount),
+                        _buildFilterChip('Ongoing', ongoingCount),
+                        _buildFilterChip('Completed', completedCount),
                       ],
                     ),
                   ),

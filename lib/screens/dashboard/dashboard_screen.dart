@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../inventory/inventory_screen.dart';
@@ -132,8 +133,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border.all(color: AppColors.softStone, width: 1),
           ),
           child: IconButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            onPressed: () async {
+              await AuthService().signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+              }
             },
             icon: const Icon(
               Icons.logout_rounded,

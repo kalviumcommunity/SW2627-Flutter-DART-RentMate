@@ -91,9 +91,47 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleGoogleSignIn() {
+  Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
-    _authService.redirectToGoogleSignIn();
+
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (!mounted) return;
+
+      if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.inkBlack,
+            content: Text(
+              'Signed in with Google: ${user.displayName} (${user.email})',
+              style: const TextStyle(color: AppColors.bone),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.dashboard,
+          arguments: user.displayName,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade900,
+            content: Text(
+              'Google Sign-In failed: ${e.toString()}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
+    }
   }
 
   @override

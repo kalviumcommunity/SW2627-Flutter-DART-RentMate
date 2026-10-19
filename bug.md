@@ -151,12 +151,13 @@
 - **Symptom:** If the underlying booking list is modified or filtered, the chip numbers remain permanently 4, 0, 1.
 - **Fix:** Compute counts dynamically: `_bookings.where((b) => b.status == ...).length`.
 
-### GLITCH-03: Dead Filter Button in `BookingsListScreen` AppBar
+### GLITCH-03: Dead Filter Button in `BookingsListScreen` AppBar [RESOLVED]
 - **Severity:** Low
-- **Location:** `lib/screens/bookings/bookings_list_screen.dart:140-143`
-- **Root Cause:** The action button has an empty callback: `IconButton(icon: const Icon(Icons.filter_list_rounded), onPressed: () {})`.
-- **Symptom:** Tapping the filter icon in the top right does nothing.
-- **Fix:** Open a bottom sheet for date/status filtering or remove the redundant icon since filter chips are already present below the search bar.
+- **Status:** Resolved
+- **Location:** `lib/screens/bookings/bookings_list_screen.dart`
+- **Root Cause:** The action button had an empty callback: `IconButton(icon: const Icon(Icons.filter_list_rounded), onPressed: () {})`.
+- **Symptom:** Tapping the filter icon in the top right did nothing.
+- **Fix:** Added `_showFilterBottomSheet(BuildContext context)` allowing interactive status filtering (All, Upcoming, Ongoing, Completed) with visual selection indicators.
 
 ### GLITCH-04: Static Hardcoded Date in Dashboard Header
 - **Severity:** Medium

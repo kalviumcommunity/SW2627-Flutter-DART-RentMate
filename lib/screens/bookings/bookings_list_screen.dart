@@ -44,6 +44,48 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
     if (mounted) setState(() {});
   }
 
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'FILTER BY STATUS',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...['All', 'Upcoming', 'Ongoing', 'Completed'].map((filter) {
+                final isSelected = _selectedFilter == filter;
+                return ListTile(
+                  title: Text(filter, style: AppTextStyles.cardTitle.copyWith(fontSize: 15)),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle_rounded, color: AppColors.burntCopper)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedFilter = filter);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredList = _bookings.where((b) {
@@ -88,7 +130,7 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list_rounded, color: AppColors.inkBlack),
-            onPressed: () {},
+            onPressed: () => _showFilterBottomSheet(context),
             tooltip: 'Filter options',
           ),
         ],

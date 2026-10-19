@@ -46,11 +46,17 @@ class AuthUser {
 
   /// Legacy mapper from raw Google userinfo JSON (fallback).
   factory AuthUser.fromGoogleUserInfo(Map<String, dynamic> json, String accessToken) {
+    final rawName = json['name']?.toString();
+    final name = (rawName != null && rawName.trim().isNotEmpty)
+        ? rawName.trim()
+        : (json['email'] != null && json['email'].toString().contains('@')
+            ? json['email'].toString().split('@').first
+            : 'Google User');
+
     return AuthUser(
       id: json['id']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
-      displayName: json['name']?.toString() ??
-          (json['email'] != null ? json['email'].toString().split('@').first : 'Google User'),
+      displayName: name,
       photoUrl: json['picture']?.toString(),
       accessToken: accessToken,
     );

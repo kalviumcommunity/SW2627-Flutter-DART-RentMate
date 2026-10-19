@@ -132,18 +132,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  void _handleGoogleSignUp() {
-    if (!kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Workspace registration on mobile will be enabled in next release. Please register with email.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
+  Future<void> _handleGoogleSignUp() async {
     setState(() => _isGoogleLoading = true);
-    _authService.redirectToGoogleSignIn();
+
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (!mounted) return;
+
+      if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.inkBlack,
+            content: Text(
+              'Account connected: ${user.displayName} (${user.email})',
+              style: const TextStyle(color: AppColors.bone),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.dashboard,
+          arguments: user.displayName,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red.shade900,
+            content: Text(
+              'Google Sign-Up failed: ${e.toString()}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
+    }
   }
 
   @override

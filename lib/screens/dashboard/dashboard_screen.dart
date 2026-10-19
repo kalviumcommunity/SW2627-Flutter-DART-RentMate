@@ -143,9 +143,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border.all(color: AppColors.softStone, width: 1),
           ),
           child: IconButton(
-            onPressed: () {
-              AuthService().signOut();
-              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+            onPressed: () async {
+              await AuthService().signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+              }
             },
             icon: const Icon(
               Icons.logout_rounded,
@@ -959,4 +961,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-

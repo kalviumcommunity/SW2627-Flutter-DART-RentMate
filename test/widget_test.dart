@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rentflow/main.dart';
 import 'package:rentflow/screens/login/login_screen.dart';
 import 'package:rentflow/screens/signup/signup_screen.dart';
+import 'package:rentflow/core/services/auth_service.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
 import 'package:rentflow/screens/dashboard/dashboard_screen.dart';
 import 'package:rentflow/screens/inventory/inventory_screen.dart';
@@ -227,6 +228,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Active Bookings'), findsOneWidget);
+  });
+
+  test('AuthUser correctly parses user info and defaults name from email', () {
+    final user = AuthUser.fromGoogleUserInfo({
+      'id': '123456789',
+      'email': 'coordinator@rentflow.ops',
+      'name': '',
+      'picture': 'https://example.com/avatar.png',
+    }, 'sample_access_token');
+
+    expect(user.id, '123456789');
+    expect(user.email, 'coordinator@rentflow.ops');
+    expect(user.displayName, 'coordinator');
+    expect(user.photoUrl, 'https://example.com/avatar.png');
+    expect(user.accessToken, 'sample_access_token');
+  });
+
+  test('AuthService maintains singleton instance and initial unauthenticated state', () {
+    final auth1 = AuthService();
+    final auth2 = AuthService();
+
+    expect(identical(auth1, auth2), isTrue);
+    auth1.signOut();
+    expect(auth1.isAuthenticated, isFalse);
+    expect(auth1.currentUser, isNull);
   });
 
   testWidgets('Tapping Dispatch and More tabs renders dedicated operational views',

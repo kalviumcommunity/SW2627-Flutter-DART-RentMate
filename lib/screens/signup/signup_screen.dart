@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
@@ -63,24 +64,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    if (_formKey.currentState?.validate() ?? true) {
-      setState(() => _isLoading = true);
-
-      // Registration transition into dashboard
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          final userName = _nameController.text.trim().isNotEmpty
-              ? _nameController.text.trim()
-              : AppConstants.coordinatorName;
-
-          Navigator.of(context).pushReplacementNamed(
-            AppRoutes.dashboard,
-            arguments: userName,
-          );
-        }
-      });
+    // Trigger full form validation across all fields
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fix the errors in the form before proceeding.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
     }
+
+    // Extra safety check for password match
+    final passText = _passwordController.text;
+    final confirmPassText = _confirmPasswordController.text;
+    if (passText != confirmPassText) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match. Please re-enter.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // Registration transition into dashboard
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        final userName = _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : AppConstants.coordinatorName;
+
+        Navigator.of(context).pushReplacementNamed(
+          AppRoutes.dashboard,
+          arguments: userName,
+        );
+      }
+    });
   }
 
   @override
@@ -109,7 +132,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+<<<<<<< HEAD
   Future<void> _handleGoogleSignUp() async {
+=======
+  void _handleGoogleSignUp() {
+    if (!kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Workspace registration on mobile will be enabled in next release. Please register with email.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+>>>>>>> origin/feature/flutter-scaffold
     setState(() => _isGoogleLoading = true);
 
     try {
@@ -222,6 +258,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               controller: _nameController,
                               keyboardType: TextInputType.name,
                               prefixIcon: Icons.person_outline_rounded,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Full name is required';
+                                }
+                                if (val.trim().length < 2) {
+                                  return 'Name must be at least 2 characters';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 16),
 
@@ -232,6 +277,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: Icons.email_outlined,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Work email is required';
+                                }
+                                final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+                                if (!emailRegex.hasMatch(val.trim())) {
+                                  return 'Please enter a valid work email';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 18),
 
@@ -328,6 +383,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               controller: _passwordController,
                               obscureText: _obscurePassword,
                               prefixIcon: Icons.lock_outline_rounded,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Password is required';
+                                }
+                                if (val.length < 6) {
+                                  return 'Password must be at least 6 characters';
+                                }
+                                return null;
+                              },
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -352,6 +416,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               controller: _confirmPasswordController,
                               obscureText: _obscureConfirmPassword,
                               prefixIcon: Icons.lock_reset_rounded,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Please confirm your password';
+                                }
+                                if (val != _passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscureConfirmPassword
@@ -462,7 +535,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           size: 20,
                           color: AppColors.inkBlack,
                         ),
-                        onPressed: _handleSignUp,
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Apple ID registration is currently in development.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 26),
 

@@ -27,11 +27,13 @@ abstract final class AppConstants {
   static const String statusCompleted = 'Completed';
   static const String statusConflict = 'Conflict';
 
-  // Equipment Categories handled by RentFlow
+  // Equipment Categories handled by RentFlow (Canonical List)
   static const List<String> equipmentCategories = [
-    'Sound Systems',
-    'Stage Lighting',
-    'Event Furniture',
+    'Lighting',
+    'Audio',
+    'Video & LED',
+    'Rigging & Staging',
+    'Power & Control',
   ];
 
   // Spacing & Layout Tokens (Responsive standards)

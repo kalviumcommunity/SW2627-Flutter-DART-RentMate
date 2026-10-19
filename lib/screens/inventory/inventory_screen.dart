@@ -33,11 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   final List<String> _categories = [
     'All',
-    'Lighting',
-    'Audio',
-    'Video & LED',
-    'Rigging',
-    'Power & Control',
+    ...AppConstants.equipmentCategories,
   ];
 
   final List<Map<String, dynamic>> _inventoryItems = [
@@ -104,7 +100,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     {
       'sku': 'TR-H30V-3M',
       'name': 'Prolyte H30V Heavy Duty Truss 3M',
-      'category': 'Rigging',
+      'category': 'Rigging & Staging',
       'flightCase': 'TR-BDL-08',
       'rackBay': 'YARD-DOCK-2',
       'total': 32,
@@ -138,6 +134,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _searchController.dispose();
     super.dispose();
   }
+
+  int get _totalAssetsCount =>
+      _inventoryItems.fold(0, (sum, item) => sum + (item['total'] as int));
+
+  int get _onStageCount =>
+      _inventoryItems.fold(0, (sum, item) => sum + (item['deployed'] as int));
+
+  int get _availableCount =>
+      _inventoryItems.fold(0, (sum, item) => sum + (item['available'] as int));
+
+  int get _serviceCount =>
+      _inventoryItems.fold(
+          0,
+          (sum, item) =>
+              sum +
+              (item['total'] as int) -
+              (item['available'] as int) -
+              (item['deployed'] as int));
 
   List<Map<String, dynamic>> get _filteredItems {
     final query = _searchController.text.trim().toLowerCase();
@@ -344,7 +358,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '148 ASSETS • WAREHOUSE & LIVE RIGS',
+                        '$_totalAssetsCount ASSETS • WAREHOUSE & LIVE RIGS',
                         style: AppTextStyles.monoLabel.copyWith(
                           fontSize: 9.5,
                           color: AppColors.agedBrass,
@@ -419,7 +433,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         Expanded(
           child: _buildMetricTile(
             label: 'TOTAL ASSETS',
-            value: '148',
+            value: '$_totalAssetsCount',
             subtext: 'Fleet count',
             icon: Icons.inventory_2_outlined,
             isDark: true,
@@ -429,7 +443,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         Expanded(
           child: _buildMetricTile(
             label: 'ON STAGE',
-            value: '94',
+            value: '$_onStageCount',
             subtext: 'Live deployed',
             icon: Icons.stadium_outlined,
             highlightColor: AppColors.burntCopper,
@@ -439,7 +453,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         Expanded(
           child: _buildMetricTile(
             label: 'AVAILABLE',
-            value: '46',
+            value: '$_availableCount',
             subtext: 'In warehouse',
             icon: Icons.warehouse_outlined,
             highlightColor: AppColors.success,
@@ -449,7 +463,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         Expanded(
           child: _buildMetricTile(
             label: 'SERVICE',
-            value: '08',
+            value: _serviceCount < 10 ? '0$_serviceCount' : '$_serviceCount',
             subtext: 'Bench check',
             icon: Icons.build_circle_outlined,
             highlightColor: AppColors.warning,

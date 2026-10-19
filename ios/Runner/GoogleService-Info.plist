@@ -2,10 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<<<<<<< HEAD
 	<key>CLIENT_ID</key>
 	<string>922415814604-95srefrfued44c84s7oqvdkcm3g6rggq.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
 	<string>com.googleusercontent.apps.922415814604-95srefrfued44c84s7oqvdkcm3g6rggq</string>
+=======
+>>>>>>> origin/feature/flutter-scaffold
 	<key>API_KEY</key>
 	<string>AIzaSyDGO_5qlTI6sxjkyhtwQebBM4PWSfJUBM8</string>
 	<key>GCM_SENDER_ID</key>
@@ -22,6 +25,7 @@
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
 	<false></false>
+<<<<<<< HEAD
 	<key>IS_APPINVITE_ENABLED</key>
 	<true></true>
 	<key>IS_GCM_ENABLED</key>
@@ -32,3 +36,9 @@
 	<string>1:922415814604:ios:6bd5c27901297a046eaf69</string>
 </dict>
 </plist>
+=======
+	<key>GOOGLE_APP_ID</key>
+	<string>1:922415814604:ios:6bd5c27901297a046eaf69</string>
+</dict>
+</plist>
+>>>>>>> origin/feature/flutter-scaffold

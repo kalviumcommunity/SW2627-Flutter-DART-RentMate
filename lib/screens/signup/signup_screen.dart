@@ -132,20 +132,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-<<<<<<< HEAD
   Future<void> _handleGoogleSignUp() async {
-=======
-  void _handleGoogleSignUp() {
-    if (!kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Workspace registration on mobile will be enabled in next release. Please register with email.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
->>>>>>> origin/feature/flutter-scaffold
     setState(() => _isGoogleLoading = true);
 
     try {

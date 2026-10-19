@@ -230,7 +230,6 @@ void main() {
     expect(find.text('Active Bookings'), findsOneWidget);
   });
 
-<<<<<<< HEAD
   test('AuthUser correctly parses user info and defaults name from email', () {
     final user = AuthUser.fromGoogleUserInfo({
       'id': '123456789',
@@ -254,7 +253,8 @@ void main() {
     auth1.signOut();
     expect(auth1.isAuthenticated, isFalse);
     expect(auth1.currentUser, isNull);
-=======
+  });
+
   testWidgets('Tapping Dispatch and More tabs renders dedicated operational views',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -280,6 +280,5 @@ void main() {
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
     expect(find.text('OPERATIONS CONFIG'), findsOneWidget);
->>>>>>> origin/feature/flutter-scaffold
   });
 }

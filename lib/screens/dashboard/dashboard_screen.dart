@@ -143,17 +143,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             border: Border.all(color: AppColors.softStone, width: 1),
           ),
           child: IconButton(
-<<<<<<< HEAD
             onPressed: () async {
               await AuthService().signOut();
               if (context.mounted) {
                 Navigator.of(context).pushReplacementNamed(AppRoutes.login);
               }
-=======
-            onPressed: () {
-              AuthService().signOut();
-              Navigator.of(context).pushReplacementNamed(AppRoutes.login);
->>>>>>> origin/feature/flutter-scaffold
             },
             icon: const Icon(
               Icons.logout_rounded,
@@ -967,4 +961,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-

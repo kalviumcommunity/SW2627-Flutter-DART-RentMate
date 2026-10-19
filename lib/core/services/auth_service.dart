@@ -241,7 +241,6 @@ class AuthService {
   void redirectToGoogleSignIn() {
     if (!kIsWeb) return;
 
-<<<<<<< HEAD
     if (isFirebaseInitialized) {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
       googleProvider.addScope('email');
@@ -249,14 +248,11 @@ class AuthService {
       FirebaseAuth.instance.signInWithRedirect(googleProvider);
       return;
     }
-=======
+
     if (activeClientId.isEmpty) {
       debugPrint('Google OAuth Client ID is not configured. Provide via --dart-define=GOOGLE_WEB_CLIENT_ID=...');
       return;
     }
-
-    final redirectUri = getWebRedirectUri();
->>>>>>> origin/feature/flutter-scaffold
 
     final redirectUri = getWebRedirectUri();
     final googleAuthUrl = Uri.https(

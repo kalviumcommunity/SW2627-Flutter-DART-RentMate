@@ -242,7 +242,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-<<<<<<< HEAD
   void initState() {
     super.initState();
     _checkRedirectAuth();
@@ -312,8 +311,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-=======
->>>>>>> origin/feature/flutter-scaffold
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bone,

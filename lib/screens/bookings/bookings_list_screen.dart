@@ -12,7 +12,7 @@ export '../../core/models/booking_item.dart';
 ///
 /// Features:
 /// - Search bar for event title, client name, and booking ID.
-/// - Filter chips: All, Upcoming, Ongoing, Completed.
+/// - Dynamic filter chips: All, Upcoming, Ongoing, Completed.
 /// - Rich event summary cards with Industrial Atelier styling.
 /// - Floating Action Button for starting the 3-step Create Booking wizard.
 class BookingsListScreen extends StatefulWidget {
@@ -44,6 +44,48 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
     if (mounted) setState(() {});
   }
 
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'FILTER BY STATUS',
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...['All', 'Upcoming', 'Ongoing', 'Completed'].map((filter) {
+                final isSelected = _selectedFilter == filter;
+                return ListTile(
+                  title: Text(filter, style: AppTextStyles.cardTitle.copyWith(fontSize: 15)),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle_rounded, color: AppColors.burntCopper)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedFilter = filter);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredList = _bookings.where((b) {
@@ -61,6 +103,17 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
       return matchesFilter && matchesSearch;
     }).toList();
 
+    final allCount = _bookings.length;
+    final upcomingCount = _bookings
+        .where((b) => b.status == 'CONFIRMED' || b.status == 'PACKING' || b.status == 'READY')
+        .length;
+    final ongoingCount = _bookings
+        .where((b) => b.status == 'DISPATCHED')
+        .length;
+    final completedCount = _bookings
+        .where((b) => b.status == 'COMPLETED')
+        .length;
+
     return Scaffold(
       backgroundColor: AppColors.bone,
       appBar: AppBar(
@@ -77,7 +130,7 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list_rounded, color: AppColors.inkBlack),
-            onPressed: () {},
+            onPressed: () => _showFilterBottomSheet(context),
             tooltip: 'Filter options',
           ),
         ],
@@ -121,10 +174,10 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('All', _bookings.length),
-                        _buildFilterChip('Upcoming', 4),
-                        _buildFilterChip('Ongoing', 0),
-                        _buildFilterChip('Completed', 1),
+                        _buildFilterChip('All', allCount),
+                        _buildFilterChip('Upcoming', upcomingCount),
+                        _buildFilterChip('Ongoing', ongoingCount),
+                        _buildFilterChip('Completed', completedCount),
                       ],
                     ),
                   ),

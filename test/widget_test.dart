@@ -7,6 +7,7 @@ import 'package:rentflow/core/services/auth_service.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
 import 'package:rentflow/screens/dashboard/dashboard_screen.dart';
 import 'package:rentflow/screens/inventory/inventory_screen.dart';
+import 'package:rentflow/screens/bookings/bookings_list_screen.dart';
 
 void main() {
   testWidgets('RentFlowApp launches with Login screen as initial route',
@@ -280,5 +281,41 @@ void main() {
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
     expect(find.text('OPERATIONS CONFIG'), findsOneWidget);
+  });
+
+  testWidgets('Bookings list screen filter button opens filter options sheet',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const BookingsListScreen(),
+      ),
+    );
+
+    // Filter button is present in AppBar
+    final filterButton = find.byTooltip('Filter options');
+    expect(filterButton, findsOneWidget);
+
+    // Tap filter button to open modal bottom sheet
+    await tester.tap(filterButton);
+    await tester.pumpAndSettle();
+
+    // Verify filter bottom sheet options appear
+    expect(find.text('FILTER BY STATUS'), findsOneWidget);
+    expect(find.text('Upcoming'), findsAtLeast(1));
+
+    // Tap a filter option in the sheet to apply it
+    await tester.tap(find.text('Upcoming').last);
+    await tester.pumpAndSettle();
+
+    // Modal sheet should be closed
+    expect(find.text('FILTER BY STATUS'), findsNothing);
   });
 }

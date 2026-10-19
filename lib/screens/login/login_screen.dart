@@ -24,6 +24,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: 'mayank@rentflow.ops');
   final _passwordController = TextEditingController(text: '••••••••');
   final _authService = AuthService();
@@ -213,6 +214,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleSignIn() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid work email and password (minimum 6 characters).'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     _persistRememberedPreference();
     setState(() => _isLoading = true);
 
@@ -350,114 +361,136 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
 
                     // Authentication Form
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.paper,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.softStone,
-                          width: 1,
+                    Form(
+                      key: _formKey,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.paper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.softStone,
+                            width: 1,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A000000),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x0A000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Work Email Input
-                          RentFlowTextField(
-                            label: 'Work Email',
-                            hintText: 'coordinator@rentflow.ops',
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            prefixIcon: Icons.alternate_email_rounded,
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Password Input
-                          RentFlowTextField(
-                            label: 'Password',
-                            hintText: '••••••••',
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            prefixIcon: Icons.lock_outline_rounded,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: AppColors.slate,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Work Email Input
+                            RentFlowTextField(
+                              label: 'Work Email',
+                              hintText: 'coordinator@rentflow.ops',
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              prefixIcon: Icons.alternate_email_rounded,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Work email is required';
+                                }
+                                final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+                                if (!emailRegex.hasMatch(val.trim())) {
+                                  return 'Please enter a valid work email';
+                                }
+                                return null;
                               },
                             ),
-                          ),
-                          const SizedBox(height: 14),
+                            const SizedBox(height: 16),
 
-                          // Remember Me & Forgot Password Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  SizedBox(
-                                    height: 22,
-                                    width: 22,
-                                    child: Checkbox(
-                                      value: _rememberMe,
-                                      activeColor: AppColors.burntCopper,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
+                            // Password Input
+                            RentFlowTextField(
+                              label: 'Password',
+                              hintText: '••••••••',
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              prefixIcon: Icons.lock_outline_rounded,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Password is required';
+                                }
+                                if (val.length < 6) {
+                                  return 'Password must be at least 6 characters';
+                                }
+                                return null;
+                              },
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: AppColors.slate,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Remember Me & Forgot Password Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: Checkbox(
+                                        value: _rememberMe,
+                                        activeColor: AppColors.burntCopper,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        onChanged: (val) {
+                                          final newVal = val ?? false;
+                                          setState(() {
+                                            _rememberMe = newVal;
+                                          });
+                                          SharedPreferences.getInstance().then((p) {
+                                            p.setBool('rentflow_remember_me', newVal);
+                                          }).catchError((_) {});
+                                        },
                                       ),
-                                      onChanged: (val) {
-                                        final newVal = val ?? false;
-                                        setState(() {
-                                          _rememberMe = newVal;
-                                        });
-                                        SharedPreferences.getInstance().then((p) {
-                                          p.setBool('rentflow_remember_me', newVal);
-                                        }).catchError((_) {});
-                                      },
                                     ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Remember me',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.inkBlack,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton(
+                                  onPressed: _showForgotPasswordDialog,
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Remember me',
+                                  child: Text(
+                                    'Forgot password?',
                                     style: AppTextStyles.bodySmall.copyWith(
-                                      color: AppColors.inkBlack,
-                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.burntCopper,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ],
-                              ),
-                              TextButton(
-                                onPressed: _showForgotPasswordDialog,
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                child: Text(
-                                  'Forgot password?',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.burntCopper,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),

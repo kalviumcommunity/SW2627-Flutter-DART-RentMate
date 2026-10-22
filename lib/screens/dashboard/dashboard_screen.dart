@@ -7,6 +7,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../bookings/booking_details_screen.dart';
 import '../bookings/bookings_list_screen.dart';
 import '../bookings/create_booking_screen.dart';
+import '../dispatch/dispatch_screen.dart';
 import '../inventory/inventory_screen.dart';
 
 /// Coordinator Dashboard screen (RentFlow Operations Cockpit).
@@ -21,8 +22,15 @@ import '../inventory/inventory_screen.dart';
 /// 6. Bottom Navigation: Industrial Atelier dock with copper indicators.
 class DashboardScreen extends StatefulWidget {
   final String? userName;
+  final String? userRole;
+  final int? initialNavIndex;
 
-  const DashboardScreen({super.key, this.userName});
+  const DashboardScreen({
+    super.key,
+    this.userName,
+    this.userRole,
+    this.initialNavIndex,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -30,6 +38,39 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentNavIndex = 0;
+  bool _hasEvaluatedInitialRole = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialNavIndex != null) {
+      _currentNavIndex = widget.initialNavIndex!;
+      _hasEvaluatedInitialRole = true;
+    } else if (widget.userRole != null) {
+      final role = widget.userRole!.toLowerCase();
+      if (role == 'warehouse') {
+        _currentNavIndex = 3; // Direct warehouse operators straight to Dispatch
+        _hasEvaluatedInitialRole = true;
+      }
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasEvaluatedInitialRole) {
+      final dynamic routeArgs = ModalRoute.of(context)?.settings.arguments;
+      if (routeArgs is Map<String, dynamic>) {
+        final role = routeArgs['role']?.toString().toLowerCase();
+        if (role == 'warehouse') {
+          _currentNavIndex = (routeArgs['initialTab'] as int?) ?? 3;
+        } else if (routeArgs['initialTab'] != null) {
+          _currentNavIndex = routeArgs['initialTab'] as int;
+        }
+      }
+      _hasEvaluatedInitialRole = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +78,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final String displayName = widget.userName ??
         (routeArgs is String && routeArgs.isNotEmpty
             ? routeArgs
-            : AppConstants.coordinatorName);
+            : (routeArgs is Map<String, dynamic> && routeArgs['userName'] != null
+                ? routeArgs['userName'].toString()
+                : AppConstants.coordinatorName));
 
     return Scaffold(
       backgroundColor: AppColors.bone,
@@ -51,7 +94,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 )
               : _currentNavIndex == 3
-                  ? _buildDispatchView()
+                  ? DispatchScreen(
+                      isEmbedded: true,
+                      onBackToOverview: () {
+                        setState(() => _currentNavIndex = 0);
+                      },
+                    )
                   : _currentNavIndex == 4
                       ? _buildMoreView()
                       : SafeArea(
@@ -786,83 +834,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: isSelected ? AppColors.burntCopper : Colors.transparent,
                 borderRadius: BorderRadius.circular(1),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDispatchView() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.screenPaddingH,
-          vertical: 20.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DISPATCH & LOGISTICS',
-                      style: AppTextStyles.brandTitle.copyWith(
-                        fontSize: 20,
-                        letterSpacing: -0.2,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Active Warehouse Dock Runs & Loading Queues',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: AppColors.inkBlack),
-                  onPressed: () => setState(() => _currentNavIndex = 0),
-                  tooltip: 'Back to Overview',
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildTimelineItem(
-              time: '10:00',
-              title: 'SHARMA WEDDING',
-              tag: 'STAGE-RIG 04',
-              status: 'Loading',
-              progressText: '6 / 12 items staged at Bay 02',
-              progressRatio: 0.5,
-              statusColor: AppColors.warning,
-              statusBg: AppColors.warningSubtle,
-            ),
-            const SizedBox(height: 12),
-            _buildTimelineItem(
-              time: '13:00',
-              title: 'TECHCORP CONFERENCE',
-              tag: 'AV-SUITE 02',
-              status: 'Packing',
-              progressText: '18 / 25 items staged at Bay 01',
-              progressRatio: 0.72,
-              statusColor: AppColors.burntCopper,
-              statusBg: AppColors.copperSubtle,
-            ),
-            const SizedBox(height: 12),
-            _buildTimelineItem(
-              time: '16:00',
-              title: 'MEHTA SANGEET',
-              tag: 'DOCK-BAY 01',
-              status: 'Ready',
-              progressText: 'Staged at dock 02 • Departure 16:30',
-              progressRatio: 1.0,
-              statusColor: AppColors.success,
-              statusBg: AppColors.successSubtle,
             ),
           ],
         ),

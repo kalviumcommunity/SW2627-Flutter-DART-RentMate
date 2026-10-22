@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
@@ -182,6 +181,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkRedirectAuth() async {
     final user = await _authService.checkOAuthRedirect();
     if (user != null && mounted) {
+      final role = await _authService.getUserRole(user.id);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.inkBlack,
@@ -194,23 +195,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       Navigator.of(context).pushReplacementNamed(
         AppRoutes.dashboard,
-        arguments: user.displayName,
+        arguments: {
+          'userName': user.displayName,
+          'role': role,
+        },
       );
     }
-  }
-
-  void _handleGoogleSignIn() {
-    if (!kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Workspace sign-in on mobile will be enabled in next release. Please use email sign in.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-    setState(() => _isGoogleLoading = true);
-    _authService.redirectToGoogleSignIn();
   }
 
   void _handleSignIn() {
@@ -244,38 +234,25 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
 
+        String userRole = 'coordinator';
+        final lower = enteredText.toLowerCase();
+        if (lower.contains('warehouse') || lower.contains('lead') || lower.contains('dispatch')) {
+          userRole = 'warehouse';
+        } else if (lower.contains('admin')) {
+          userRole = 'admin';
+        } else {
+          userRole = _authService.getCachedUserRole(enteredText);
+        }
+
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.dashboard,
-          arguments: userName,
+          arguments: {
+            'userName': userName,
+            'role': userRole,
+          },
         );
       }
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _checkRedirectAuth();
-  }
-
-  Future<void> _checkRedirectAuth() async {
-    final user = await _authService.checkOAuthRedirect();
-    if (user != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.inkBlack,
-          content: Text(
-            'Signed in with Google: ${user.displayName} (${user.email})',
-            style: const TextStyle(color: AppColors.bone),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      Navigator.of(context).pushReplacementNamed(
-        AppRoutes.dashboard,
-        arguments: user.displayName,
-      );
-    }
   }
 
   Future<void> _handleGoogleSignIn() async {
@@ -286,6 +263,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (user != null) {
+        final role = await _authService.getUserRole(user.id);
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.inkBlack,
@@ -298,7 +278,10 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.dashboard,
-          arguments: user.displayName,
+          arguments: {
+            'userName': user.displayName,
+            'role': role,
+          },
         );
       }
     } catch (e) {

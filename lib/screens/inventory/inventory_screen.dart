@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/inventory_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../widgets/equipment_scan_dialog.dart';
 
 /// Equipment Inventory Screen (Industrial Atelier UI/UX).
 ///
@@ -36,103 +38,50 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ...AppConstants.equipmentCategories,
   ];
 
-  final List<Map<String, dynamic>> _inventoryItems = [
-    {
-      'sku': 'LT-PNT-700',
-      'name': 'Robe Robin Pointe Moving Beam',
-      'category': 'Lighting',
-      'flightCase': 'FC-L-04',
-      'rackBay': 'BAY-02-B',
-      'total': 24,
-      'available': 8,
-      'deployed': 16,
-      'status': 'DEPLOYED',
-      'statusColor': AppColors.burntCopper,
-      'statusBg': AppColors.copperSubtle,
-      'specs': '280W Lamp • 0°–20° Zoom • DMX 24ch',
-      'progressRatio': 0.67,
-    },
-    {
-      'sku': 'AU-K2-LARR',
-      'name': 'L-Acoustics K2 Line Array Module',
-      'category': 'Audio',
-      'flightCase': 'FC-A-12',
-      'rackBay': 'RIG-01-A',
-      'total': 16,
-      'available': 12,
-      'deployed': 4,
-      'status': 'IN WAREHOUSE',
-      'statusColor': AppColors.success,
-      'statusBg': AppColors.successSubtle,
-      'specs': 'Dual 12" Neodymium • Panflex 70/110° • 147 dB',
-      'progressRatio': 0.25,
-    },
-    {
-      'sku': 'VD-PL25-LED',
-      'name': 'Absen PL2.5 Pro Outdoor LED Panel',
-      'category': 'Video & LED',
-      'flightCase': 'FC-V-08',
-      'rackBay': 'BAY-06-C',
-      'total': 48,
-      'available': 48,
-      'deployed': 0,
-      'status': 'IN WAREHOUSE',
-      'statusColor': AppColors.success,
-      'statusBg': AppColors.successSubtle,
-      'specs': '2.5mm Pitch • 4500 nits • IP65 Weatherproof',
-      'progressRatio': 0.0,
-    },
-    {
-      'sku': 'CT-MQ500M',
-      'name': 'Chamsys MagicQ MQ500M Stadium Console',
-      'category': 'Power & Control',
-      'flightCase': 'FC-C-01',
-      'rackBay': 'CTRL-ROOM-1',
-      'total': 2,
-      'available': 0,
-      'deployed': 2,
-      'status': 'DEPLOYED',
-      'statusColor': AppColors.burntCopper,
-      'statusBg': AppColors.copperSubtle,
-      'specs': '256 Universes • 4 Motorized Fader Banks • Dual Touch',
-      'progressRatio': 1.0,
-    },
-    {
-      'sku': 'TR-H30V-3M',
-      'name': 'Prolyte H30V Heavy Duty Truss 3M',
-      'category': 'Rigging & Staging',
-      'flightCase': 'TR-BDL-08',
-      'rackBay': 'YARD-DOCK-2',
-      'total': 32,
-      'available': 18,
-      'deployed': 14,
-      'status': 'IN WAREHOUSE',
-      'statusColor': AppColors.success,
-      'statusBg': AppColors.successSubtle,
-      'specs': '4-Point Box Truss • CCS6 Conical Coupler • 6082T6 Alloy',
-      'progressRatio': 0.44,
-    },
-    {
-      'sku': 'AU-PWR-X8',
-      'name': 'Powersoft X8 Touring 8-Ch Amplifier',
-      'category': 'Audio',
-      'flightCase': 'AMP-RK-03',
-      'rackBay': 'MAINT-BENCH-1',
-      'total': 6,
-      'available': 2,
-      'deployed': 3,
-      'status': 'MAINTENANCE',
-      'statusColor': AppColors.warning,
-      'statusBg': AppColors.warningSubtle,
-      'specs': '8x 5200W @ 2Ω • Dante Networking • Advanced DSP',
-      'progressRatio': 0.50,
-    },
-  ];
+  final InventoryRepository _inventoryRepo = InventoryRepository();
+
+  List<Map<String, dynamic>> get _inventoryItems => _inventoryRepo.items;
+
+  @override
+  void initState() {
+    super.initState();
+    _inventoryRepo.itemsNotifier.addListener(_onInventoryChanged);
+  }
+
+  void _onInventoryChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    _inventoryRepo.itemsNotifier.removeListener(_onInventoryChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchEquipmentScanner() async {
+    final scanned = await EquipmentScanDialog.show(
+      context,
+      title: 'EQUIPMENT SCANNER',
+      subtitle: 'Align barcode or flight case QR within viewfinder',
+    );
+    if (scanned != null && mounted) {
+      setState(() {
+        _searchController.text = scanned;
+      });
+      final matched = _inventoryRepo.findBySku(scanned);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            matched != null
+                ? 'Identified: ${matched['name']} (${matched['sku']})'
+                : 'Scanned code: $scanned (Filtered inventory)',
+          ),
+          backgroundColor: matched != null ? AppColors.success : AppColors.inkBlack,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   int get _totalAssetsCount =>
@@ -378,14 +327,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               _buildHeaderIconAction(
                 icon: Icons.qr_code_scanner_rounded,
                 tooltip: 'Scan Flight Case',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Barcode & RFID scanner initialized.'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
+                onTap: _launchEquipmentScanner,
               ),
               const SizedBox(width: 8),
               _buildHeaderIconAction(
@@ -916,14 +858,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Expanded(
                 flex: 1,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Camera barcode scanner launched.'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
+                  onPressed: _launchEquipmentScanner,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.bone,
                     side: const BorderSide(color: Color(0x33FAF7F0), width: 1),

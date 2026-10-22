@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
@@ -90,6 +89,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isLoading = true);
 
+    final normalizedRole = AuthService.normalizeRole(_selectedRole);
+    final email = _emailController.text.trim();
+    _authService.setUserRole(email, normalizedRole);
+
     // Registration transition into dashboard
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
@@ -100,7 +103,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.dashboard,
-          arguments: userName,
+          arguments: {
+            'userName': userName,
+            'role': normalizedRole,
+          },
         );
       }
     });
@@ -115,6 +121,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _checkRedirectAuth() async {
     final user = await _authService.checkOAuthRedirect();
     if (user != null && mounted) {
+      final normalizedRole = AuthService.normalizeRole(_selectedRole);
+      await _authService.setUserRole(user.id, normalizedRole);
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.inkBlack,
@@ -127,7 +137,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       Navigator.of(context).pushReplacementNamed(
         AppRoutes.dashboard,
-        arguments: user.displayName,
+        arguments: {
+          'userName': user.displayName,
+          'role': normalizedRole,
+        },
       );
     }
   }
@@ -140,6 +153,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
 
       if (user != null) {
+        final normalizedRole = AuthService.normalizeRole(_selectedRole);
+        await _authService.setUserRole(user.id, normalizedRole);
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.inkBlack,
@@ -152,7 +169,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.dashboard,
-          arguments: user.displayName,
+          arguments: {
+            'userName': user.displayName,
+            'role': normalizedRole,
+          },
         );
       }
     } catch (e) {

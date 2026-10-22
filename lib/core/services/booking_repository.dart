@@ -56,6 +56,28 @@ class BookingRepository {
       totalAmount: 62000.0,
     ),
     BookingItem(
+      id: 'BK-8930',
+      eventTitle: 'Saffron Heritage Sangeet & Reception',
+      clientName: 'Rohan Mehra',
+      category: 'Wedding',
+      date: 'Today, 11:00 — 23:00',
+      venue: 'Jai Mahal Palace Lawn, Jaipur',
+      status: 'DISPATCHED',
+      unitsCount: 28,
+      totalAmount: 52000.0,
+    ),
+    BookingItem(
+      id: 'BK-8928',
+      eventTitle: 'Rajasthan Tech Expo & Keynote',
+      clientName: 'Kavita Joshi',
+      category: 'Corporate',
+      date: 'Yesterday — Today, 18:00',
+      venue: 'JECC Convention Center, Jaipur',
+      status: 'AWAITING RETURN',
+      unitsCount: 36,
+      totalAmount: 68000.0,
+    ),
+    BookingItem(
       id: 'BK-8920',
       eventTitle: 'Innovate Summit Keynote & Stage',
       clientName: 'Anand Verma',
@@ -74,5 +96,25 @@ class BookingRepository {
 
   void addBooking(BookingItem item) {
     bookingsNotifier.value = [item, ...bookingsNotifier.value];
+  }
+
+  void updateBookingStatus(String id, String newStatus) {
+    final list = bookingsNotifier.value.map((b) {
+      if (b.id == id) {
+        return BookingItem(
+          id: b.id,
+          eventTitle: b.eventTitle,
+          clientName: b.clientName,
+          category: b.category,
+          date: b.date,
+          venue: b.venue,
+          status: newStatus,
+          unitsCount: b.unitsCount,
+          totalAmount: b.totalAmount,
+        );
+      }
+      return b;
+    }).toList();
+    bookingsNotifier.value = list;
   }
 }

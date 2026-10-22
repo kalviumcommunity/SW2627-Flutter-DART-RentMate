@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'web_auth_adapter.dart';
 
 /// User profile model representing an authenticated Google operator.
@@ -14,6 +16,7 @@ class AuthUser {
   final String? photoUrl;
   final String? accessToken;
   final User? firebaseUser;
+  final String role;
 
   const AuthUser({
     required this.id,
@@ -22,10 +25,11 @@ class AuthUser {
     this.photoUrl,
     this.accessToken,
     this.firebaseUser,
+    this.role = 'coordinator',
   });
 
   /// Creates an [AuthUser] instance from a Firebase [User].
-  factory AuthUser.fromFirebaseUser(User user, {String? accessToken}) {
+  factory AuthUser.fromFirebaseUser(User user, {String? accessToken, String role = 'coordinator'}) {
     String name = user.displayName ?? '';
     if (name.isEmpty && user.email != null && user.email!.contains('@')) {
       final part = user.email!.split('@').first;
@@ -41,11 +45,12 @@ class AuthUser {
       photoUrl: user.photoURL,
       accessToken: accessToken,
       firebaseUser: user,
+      role: role,
     );
   }
 
   /// Legacy mapper from raw Google userinfo JSON (fallback).
-  factory AuthUser.fromGoogleUserInfo(Map<String, dynamic> json, String accessToken) {
+  factory AuthUser.fromGoogleUserInfo(Map<String, dynamic> json, String accessToken, {String role = 'coordinator'}) {
     final rawName = json['name']?.toString();
     final name = (rawName != null && rawName.trim().isNotEmpty)
         ? rawName.trim()
@@ -59,6 +64,7 @@ class AuthUser {
       displayName: name,
       photoUrl: json['picture']?.toString(),
       accessToken: accessToken,
+      role: role,
     );
   }
 }
@@ -108,6 +114,103 @@ class AuthService {
       _currentUser = null;
       return null;
     });
+  }
+
+  static final Map<String, String> _roleMemoryCache = {};
+
+  /// Retrieves cached role synchronously without awaiting SharedPreferences/Firestore.
+  String getCachedUserRole(String? uid) {
+    if (uid != null && uid.isNotEmpty) {
+      final key = uid.toLowerCase().trim();
+      if (_roleMemoryCache.containsKey(key)) {
+        return _roleMemoryCache[key]!;
+      }
+    }
+    return 'coordinator';
+  }
+
+  /// Normalizes a role string into one of standard roles: 'coordinator', 'warehouse', 'admin'.
+  static String normalizeRole(String rawRole) {
+    final lower = rawRole.toLowerCase().trim();
+    if (lower.contains('warehouse') || lower.contains('lead') || lower.contains('dispatcher') || lower == 'operator') {
+      return 'warehouse';
+    } else if (lower.contains('admin') || lower.contains('manager')) {
+      return 'admin';
+    }
+    return 'coordinator';
+  }
+
+  /// Reads the authenticated user's role from Firestore (FR-01 / Phase 2) with fallback to local cache.
+  Future<String> getUserRole([String? uid]) async {
+    final targetUid = uid ?? currentFirebaseUser?.uid ?? _currentUser?.id;
+    if (targetUid != null && targetUid.isNotEmpty) {
+      final key = targetUid.toLowerCase().trim();
+      if (_roleMemoryCache.containsKey(key)) {
+        return _roleMemoryCache[key]!;
+      }
+      if (isFirebaseInitialized) {
+        try {
+          final doc = await FirebaseFirestore.instance.collection('users').doc(targetUid).get();
+          if (doc.exists && doc.data() != null) {
+            final role = doc.data()!['role']?.toString();
+            if (role != null && role.isNotEmpty) {
+              final normalized = normalizeRole(role);
+              await _cacheUserRole(targetUid, normalized);
+              return normalized;
+            }
+          }
+        } catch (e) {
+          debugPrint('Firestore getUserRole error: $e');
+        }
+      }
+
+      // Check SharedPreferences cache
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final cached = prefs.getString('rentflow_user_role_$targetUid');
+        if (cached != null && cached.isNotEmpty) {
+          final normalized = normalizeRole(cached);
+          _roleMemoryCache[key] = normalized;
+          return normalized;
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getString('rentflow_current_role');
+      if (current != null && current.isNotEmpty) {
+        return normalizeRole(current);
+      }
+    } catch (_) {}
+
+    return 'coordinator';
+  }
+
+  /// Writes the user's role to Firestore and updates local cache.
+  Future<void> setUserRole(String uid, String role) async {
+    final normalized = normalizeRole(role);
+    _roleMemoryCache[uid.toLowerCase().trim()] = normalized;
+    if (isFirebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'role': normalized,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore setUserRole error: $e');
+      }
+    }
+    await _cacheUserRole(uid, normalized);
+  }
+
+  Future<void> _cacheUserRole(String uid, String role) async {
+    _roleMemoryCache[uid.toLowerCase().trim()] = role;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('rentflow_user_role_$uid', role);
+      await prefs.setString('rentflow_current_role', role);
+    } catch (_) {}
   }
 
   /// Initiates Google OAuth sign-in using Firebase Authentication across Web and Mobile.

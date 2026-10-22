@@ -199,20 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleGoogleSignIn() {
-    if (!kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Workspace sign-in on mobile will be enabled in next release. Please use email sign in.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-    setState(() => _isGoogleLoading = true);
-    _authService.redirectToGoogleSignIn();
-  }
-
   void _handleSignIn() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -250,32 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _checkRedirectAuth();
-  }
-
-  Future<void> _checkRedirectAuth() async {
-    final user = await _authService.checkOAuthRedirect();
-    if (user != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.inkBlack,
-          content: Text(
-            'Signed in with Google: ${user.displayName} (${user.email})',
-            style: const TextStyle(color: AppColors.bone),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      Navigator.of(context).pushReplacementNamed(
-        AppRoutes.dashboard,
-        arguments: user.displayName,
-      );
-    }
   }
 
   Future<void> _handleGoogleSignIn() async {

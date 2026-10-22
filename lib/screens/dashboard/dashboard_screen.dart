@@ -108,7 +108,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       horizontal: AppConstants.screenPaddingH,
                       vertical: 22.0,
                     ),
-                    child: Column(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1100),
+                        child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Bar with left-aligned greeting & logout action
@@ -134,6 +137,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
+              ),
+            ),
       bottomNavigationBar: _buildBottomNavigation(),
     );
   }

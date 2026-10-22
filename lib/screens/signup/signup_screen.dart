@@ -201,9 +201,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       backgroundColor: AppColors.inkBlack,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 580),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               // Top Header with Back Action
               _buildAtmosphericHeader(context),
 
@@ -592,7 +595,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildAtmosphericHeader(BuildContext context) {

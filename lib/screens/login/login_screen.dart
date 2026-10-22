@@ -310,19 +310,22 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.bone,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. Cinematic Atmospheric Stage Header
-              _buildAtmosphericHeader(),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 580),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Cinematic Atmospheric Stage Header
+                  _buildAtmosphericHeader(),
 
-              // 2. Primary Form Surface
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.screenPaddingH,
-                  vertical: 24.0,
-                ),
-                child: Column(
+                  // 2. Primary Form Surface
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.screenPaddingH,
+                      vertical: 24.0,
+                    ),
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Section Title
@@ -581,6 +584,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
+            ),
+          ),
         ),
       ),
     );
@@ -676,11 +681,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                'Live logistics & warehouse fleet orchestration',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.softStone,
-                  fontSize: 11,
+              Expanded(
+                child: Text(
+                  'Live logistics & warehouse fleet orchestration',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.softStone,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],

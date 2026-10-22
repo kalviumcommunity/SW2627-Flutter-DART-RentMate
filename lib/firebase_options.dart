@@ -29,14 +29,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return linux;
       default:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
-        );
+        return web;
     }
   }
 
@@ -75,6 +70,16 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyAJKdZJ0XldZsJeGg51X3Lb1aDTiUpiriI',
+    appId: '1:922415814604:web:c2c78ff7623347076eaf69',
+    messagingSenderId: '922415814604',
+    projectId: 'rentflow-c6ca0',
+    authDomain: 'rentflow-c6ca0.firebaseapp.com',
+    storageBucket: 'rentflow-c6ca0.firebasestorage.app',
+    measurementId: 'G-PRTPVDH3DW',
+  );
+
+  static const FirebaseOptions linux = FirebaseOptions(
     apiKey: 'AIzaSyAJKdZJ0XldZsJeGg51X3Lb1aDTiUpiriI',
     appId: '1:922415814604:web:c2c78ff7623347076eaf69',
     messagingSenderId: '922415814604',

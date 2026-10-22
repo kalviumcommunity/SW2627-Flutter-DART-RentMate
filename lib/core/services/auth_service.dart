@@ -242,6 +242,30 @@ class AuthService {
           debugPrint('Firebase Google Auth Web success: ${_currentUser?.email}');
           return _currentUser;
         }
+      } else if (defaultTargetPlatform == TargetPlatform.windows ||
+                 defaultTargetPlatform == TargetPlatform.linux ||
+                 defaultTargetPlatform == TargetPlatform.macOS) {
+        // Desktop platforms (Windows, macOS, Linux)
+        try {
+          final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+          googleProvider.addScope('email');
+          googleProvider.addScope('profile');
+          final UserCredential userCredential =
+              await FirebaseAuth.instance.signInWithProvider(googleProvider);
+          if (userCredential.user != null) {
+            _currentUser = AuthUser.fromFirebaseUser(
+              userCredential.user!,
+              accessToken: userCredential.credential?.accessToken,
+            );
+            return _currentUser;
+          }
+        } catch (desktopError) {
+          debugPrint('Desktop provider sign-in attempted: $desktopError');
+          throw Exception(
+            'Google Sign-In on desktop requires browser redirect or email sign in. '
+            'Please use your work email to sign in.',
+          );
+        }
       } else {
         // Native Android / iOS Google Sign-In
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();

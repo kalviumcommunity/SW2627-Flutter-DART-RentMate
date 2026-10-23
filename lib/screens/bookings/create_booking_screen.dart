@@ -995,7 +995,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
               ),
               const SizedBox(height: 12),
               ...selectedItems.map((item) {
-                final itemSubtotal = item.selectedQty * item.dailyRate;
+                final itemSubtotal = item.selectedQty * item.dailyRate * _rentalDays;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
@@ -1017,12 +1017,25 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          item.name,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.inkBlack,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.inkBlack,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (_rentalDays > 1)
+                              Text(
+                                '₹${item.dailyRate.toInt()}/day × $_rentalDays days',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontSize: 10,
+                                  color: AppColors.slate,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Text(
@@ -1060,7 +1073,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _buildDarkPriceRow('Base Equipment Daily Rental', '₹${_totalDailyRental.toInt()}'),
+              _buildDarkPriceRow(
+                _rentalDays > 1
+                    ? 'Base Equipment Rental ($_rentalDays Days)'
+                    : 'Base Equipment Daily Rental',
+                '₹${_totalDailyRental.toInt()}',
+              ),
               _buildDarkPriceRow('Logistics, Rigging & Crew', '₹${_logisticsFee.toInt()}'),
               _buildDarkPriceRow('Refundable Security Deposit (25%)', '₹${_securityDeposit.toInt()}'),
               const Divider(color: Color(0xFF333D3A), height: 20),

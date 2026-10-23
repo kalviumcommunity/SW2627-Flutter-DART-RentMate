@@ -51,11 +51,11 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   int _currentStep = 1; // 1: Details, 2: Equipment, 3: Review
 
   // Step 1 Controllers & State
-  final _eventNameController = TextEditingController(text: 'Ananya & Kabir Sangeet Night');
-  final _clientNameController = TextEditingController(text: 'Rajesh Sharma');
-  final _phoneController = TextEditingController(text: '+91 98765 43210');
-  final _venueController = TextEditingController(text: 'The Oberoi Rajvilas, Jaipur');
-  final _notesController = TextEditingController(text: 'Setup required 4 hours prior to guest arrival. Sound check at 4 PM.');
+  final _eventNameController = TextEditingController();
+  final _clientNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _venueController = TextEditingController();
+  final _notesController = TextEditingController();
   
   String _selectedEventType = 'Wedding';
   DateTime _startDate = DateTime.now().add(const Duration(days: 3));
@@ -82,7 +82,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 8,
         dailyRate: 1500.0,
         icon: Icons.speaker_rounded,
-        selectedQty: 4,
+        selectedQty: 0,
       ),
       EquipmentCatalogItem(
         id: 'eq-2',
@@ -93,7 +93,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 12,
         dailyRate: 850.0,
         icon: Icons.highlight_rounded,
-        selectedQty: 6,
+        selectedQty: 0,
       ),
       EquipmentCatalogItem(
         id: 'eq-3',
@@ -104,7 +104,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 20,
         dailyRate: 1200.0,
         icon: Icons.tv_rounded,
-        selectedQty: 8,
+        selectedQty: 0,
       ),
       EquipmentCatalogItem(
         id: 'eq-4',
@@ -115,7 +115,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 14,
         dailyRate: 600.0,
         icon: Icons.grid_view_rounded,
-        selectedQty: 4,
+        selectedQty: 0,
       ),
       EquipmentCatalogItem(
         id: 'eq-5',
@@ -126,7 +126,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 5,
         dailyRate: 950.0,
         icon: Icons.mic_rounded,
-        selectedQty: 2,
+        selectedQty: 0,
       ),
       EquipmentCatalogItem(
         id: 'eq-6',
@@ -137,7 +137,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         availableQty: 2,
         dailyRate: 4500.0,
         icon: Icons.bolt_rounded,
-        selectedQty: 1,
+        selectedQty: 0,
       ),
     ];
   }
@@ -536,7 +536,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   // ===========================================================================
   Widget _buildStep2EquipmentSelection() {
     final filteredCatalog = _catalog.where((item) {
-      final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
+      final matchesCategory = AppConstants.categoryMatches(item.category, _selectedCategory);
       final matchesSearch = _equipmentSearchQuery.isEmpty ||
           item.name.toLowerCase().contains(_equipmentSearchQuery.toLowerCase()) ||
           item.sku.toLowerCase().contains(_equipmentSearchQuery.toLowerCase());
@@ -583,7 +583,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: ['All', ...AppConstants.equipmentCategories].map((cat) {
+            children: AppConstants.equipmentCategories.map((cat) {
               final isSelected = _selectedCategory == cat;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -1176,37 +1176,43 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
               label: _currentStep == 1
                   ? 'Next: Select Equipment'
                   : _currentStep == 2
-                      ? 'Next: Review Booking ($_totalSelectedItems Items)'
+                      ? (_totalSelectedItems == 0
+                          ? 'Select Equipment to Proceed'
+                          : 'Next: Review Booking ($_totalSelectedItems Items)')
                       : 'Lock & Confirm Reservation',
               icon: _currentStep == 3 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
-              onPressed: () {
-                if (_currentStep == 1) {
-                  if (_eventNameController.text.trim().isEmpty ||
-                      _venueController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter an event title and venue to continue.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    return;
-                  }
-                  setState(() => _currentStep = 2);
-                } else if (_currentStep == 2) {
-                  if (_totalSelectedItems <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please select at least 1 equipment item to proceed.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    return;
-                  }
-                  setState(() => _currentStep = 3);
-                } else {
-                  _showBookingSuccessDialog();
-                }
-              },
+              onPressed: (_currentStep == 2 && _totalSelectedItems == 0)
+                  ? null
+                  : () {
+                      if (_currentStep == 1) {
+                        final title = _eventNameController.text.trim();
+                        final client = _clientNameController.text.trim();
+                        final venue = _venueController.text.trim();
+                        if (title.isEmpty || client.isEmpty || venue.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter event title, client name, and venue to continue.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                        setState(() => _currentStep = 2);
+                      } else if (_currentStep == 2) {
+                        if (_totalSelectedItems <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select at least 1 equipment item to proceed.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                        setState(() => _currentStep = 3);
+                      } else {
+                        _showBookingSuccessDialog();
+                      }
+                    },
             ),
           ),
         ],

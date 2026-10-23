@@ -29,12 +29,30 @@ abstract final class AppConstants {
 
   // Equipment Categories handled by RentFlow (Canonical List)
   static const List<String> equipmentCategories = [
+    'All',
+    'Sound',
     'Lighting',
-    'Audio',
-    'Video & LED',
-    'Rigging & Staging',
-    'Power & Control',
+    'Visuals',
+    'Staging',
+    'Power',
   ];
+
+  /// Canonical normalization for equipment categories across all screens.
+  static String normalizeCategory(String category) {
+    final lower = category.toLowerCase().trim();
+    if (lower.contains('sound') || lower.contains('audio')) return 'Sound';
+    if (lower.contains('light')) return 'Lighting';
+    if (lower.contains('visual') || lower.contains('video') || lower.contains('led')) return 'Visuals';
+    if (lower.contains('stag') || lower.contains('rig')) return 'Staging';
+    if (lower.contains('power') || lower.contains('ctrl') || lower.contains('control')) return 'Power';
+    return category;
+  }
+
+  /// Checks whether an item category matches a selected filter category.
+  static bool categoryMatches(String itemCategory, String selectedCategory) {
+    if (selectedCategory == 'All') return true;
+    return normalizeCategory(itemCategory) == normalizeCategory(selectedCategory);
+  }
 
   // Spacing & Layout Tokens (Responsive standards)
   static const double screenPaddingH = 16.0;

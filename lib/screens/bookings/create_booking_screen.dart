@@ -536,7 +536,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   // ===========================================================================
   Widget _buildStep2EquipmentSelection() {
     final filteredCatalog = _catalog.where((item) {
-      final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
+      final matchesCategory = AppConstants.categoryMatches(item.category, _selectedCategory);
       final matchesSearch = _equipmentSearchQuery.isEmpty ||
           item.name.toLowerCase().contains(_equipmentSearchQuery.toLowerCase()) ||
           item.sku.toLowerCase().contains(_equipmentSearchQuery.toLowerCase());
@@ -583,7 +583,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: ['All', ...AppConstants.equipmentCategories].map((cat) {
+            children: AppConstants.equipmentCategories.map((cat) {
               final isSelected = _selectedCategory == cat;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -1194,18 +1194,19 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
               label: _currentStep == 1
                   ? 'Next: Select Equipment'
                   : _currentStep == 2
-                      ? (_totalSelectedItems > 0
-                          ? 'Next: Review Booking ($_totalSelectedItems Items)'
-                          : 'Select Equipment to Continue')
+                      ? (_totalSelectedItems == 0
+                          ? 'Select Equipment to Proceed'
+                          : 'Next: Review Booking ($_totalSelectedItems Items)')
                       : 'Lock & Confirm Reservation',
               icon: _currentStep == 3 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
               onPressed: (_currentStep == 2 && _totalSelectedItems == 0)
                   ? null
                   : () {
                       if (_currentStep == 1) {
-                        if (_eventNameController.text.trim().isEmpty ||
-                            _clientNameController.text.trim().isEmpty ||
-                            _venueController.text.trim().isEmpty) {
+                        final title = _eventNameController.text.trim();
+                        final client = _clientNameController.text.trim();
+                        final venue = _venueController.text.trim();
+                        if (title.isEmpty || client.isEmpty || venue.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Please enter event title, client name, and venue to continue.'),
@@ -1216,7 +1217,15 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                         }
                         setState(() => _currentStep = 2);
                       } else if (_currentStep == 2) {
-                        if (_totalSelectedItems <= 0) return;
+                        if (_totalSelectedItems <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please select at least 1 equipment item to proceed.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
                         setState(() => _currentStep = 3);
                       } else {
                         _showBookingSuccessDialog();

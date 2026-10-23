@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/inventory_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../widgets/rentflow_button.dart';
 import '../bookings/booking_details_screen.dart';
 import '../bookings/bookings_list_screen.dart';
 import '../bookings/create_booking_screen.dart';
@@ -112,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Top Bar with left-aligned greeting & logout action
-                        _buildTopHeader(context, displayName),
+                        _buildTopHeader(displayName),
                         const SizedBox(height: 22),
 
                         // Large Primary Operational Panel
@@ -140,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 
   /// Top Bar with left-aligned greeting and sign-out action
-  Widget _buildTopHeader(BuildContext context, String displayName) {
+  Widget _buildTopHeader(String displayName) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: IconButton(
             onPressed: () async {
               await AuthService().signOut();
-              if (context.mounted) {
+              if (mounted) {
                 Navigator.of(context).pushReplacementNamed(AppRoutes.login);
               }
             },
@@ -352,20 +354,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    '148',
-                    style: AppTextStyles.monoMetric.copyWith(
-                      fontSize: 26,
-                      color: AppColors.inkBlack,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '98% operational capacity',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontSize: 11,
-                      color: AppColors.slate,
-                    ),
+                  ValueListenableBuilder<List<Map<String, dynamic>>>(
+                    valueListenable: InventoryRepository().itemsNotifier,
+                    builder: (context, items, child) {
+                      final totalAssets = InventoryRepository().totalAssetsCount;
+                      final maintCount = InventoryRepository().maintenanceCount;
+                      final operationalPct = totalAssets > 0
+                          ? (((totalAssets - maintCount) / totalAssets) * 100).round()
+                          : 100;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$totalAssets',
+                            style: AppTextStyles.monoMetric.copyWith(
+                              fontSize: 26,
+                              color: AppColors.inkBlack,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$operationalPct% operational capacity',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 11,
+                              color: AppColors.slate,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -884,6 +902,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildConfigOption(Icons.handyman_outlined, 'Maintenance & Bench Checks', 'Equipment inspection schedules, test reports, and repairs'),
             _buildConfigOption(Icons.badge_outlined, 'Staff Access & Crew Roles', 'Permissions for Coordinators, Dispatchers, and Leads'),
             _buildConfigOption(Icons.cloud_sync_outlined, 'Cloud Sync & Offline Manifests', 'Synchronize field manifests with central operations DB'),
+            const SizedBox(height: 24),
+            RentFlowButton(
+              label: 'Sign Out of Session',
+              icon: Icons.logout_rounded,
+              backgroundColor: AppColors.paper,
+              textColor: AppColors.danger,
+              onPressed: () async {
+                await AuthService().signOut();
+                if (mounted) {
+                  Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+                }
+              },
+            ),
           ],
         ),
       ),

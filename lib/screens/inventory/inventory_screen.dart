@@ -33,10 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String _selectedStatusFilter = 'All';
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _categories = [
-    'All',
-    ...AppConstants.equipmentCategories,
-  ];
+  final List<String> _categories = AppConstants.equipmentCategories;
 
   final InventoryRepository _inventoryRepo = InventoryRepository();
 
@@ -106,8 +103,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final query = _searchController.text.trim().toLowerCase();
     return _inventoryItems.where((item) {
       // Category filter
-      if (_selectedCategory != 'All' &&
-          item['category'] != _selectedCategory) {
+      if (!AppConstants.categoryMatches(item['category'].toString(), _selectedCategory)) {
         return false;
       }
       // Status filter

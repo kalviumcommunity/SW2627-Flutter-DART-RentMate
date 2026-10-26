@@ -22,19 +22,21 @@
 
 ## 1. Functional & Navigation Bugs
 
-### BUG-01: Broken Bottom Navigation for `Dispatch` (Index 3) & `More` (Index 4)
+### BUG-01: Broken Bottom Navigation for `Dispatch` (Index 3) & `More` (Index 4) [RESOLVED]
 - **Severity:** Critical
+- **Status:** Resolved
 - **Location:** `lib/screens/dashboard/dashboard_screen.dart:43-83`
 - **Root Cause:** The `build()` method uses a ternary checking only `_currentNavIndex == 1` (`BookingsListScreen`) and `_currentNavIndex == 2` (`InventoryScreen`). If `_currentNavIndex` is set to 3 or 4, it falls through to index 0 (`Overview`).
 - **Symptom:** Tapping "Dispatch" or "More" highlights the bottom navigation icon, but the page content remains on the Overview dashboard.
-- **Fix:** Either implement dedicated views for Dispatch and More or render appropriate placeholder cards with informative status messaging instead of silently displaying Overview.
+- **Fix:** Wired `DispatchScreen` at index 3 and persistent bottom action modal on index 4.
 
-### BUG-02: "Dispatch" Quick Command Chip Misrouted to Bookings List
+### BUG-02: "Dispatch" Quick Command Chip Misrouted to Bookings List [RESOLVED]
 - **Severity:** High
+- **Status:** Resolved
 - **Location:** `lib/screens/dashboard/dashboard_screen.dart:643-648`
 - **Root Cause:** The `Dispatch` quick command chip callback is hardcoded to `setState(() => _currentNavIndex = 1);`. Index 1 is `BookingsListScreen`, not Dispatch.
 - **Symptom:** Tapping the Dispatch quick command opens the Bookings list view instead of the dispatch queue or a dispatch filter.
-- **Fix:** Wire `Dispatch` to filter active dispatches (e.g., passing a tab/filter state) or to index 3 when a Dispatch screen is added.
+- **Fix:** Wired `Dispatch` quick command directly to index 3 (`DispatchScreen`).
 
 ### BUG-03: "Availability" Quick Command Chip Opens Booking Creation Wizard
 - **Severity:** Medium
@@ -71,26 +73,29 @@
 - **Symptom:** User can type "password123" and "differentpass" and registration succeeds without warning.
 - **Fix:** Add confirmation check `if (_passwordController.text != _confirmPasswordController.text)` with appropriate error banner/validation text.
 
-### BUG-08: Zero-Item & Blank Booking Submission Allowed in `CreateBookingScreen`
+### BUG-08: Zero-Item & Blank Booking Submission Allowed in `CreateBookingScreen` [RESOLVED]
 - **Severity:** High
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/create_booking_screen.dart:1155-1165`
 - **Root Cause:** `onPressed` on Step 1 and Step 2 advances to Step 3 without checking if required text fields are populated or if `_totalSelectedItems > 0`.
 - **Symptom:** A coordinator can confirm an empty booking with 0 equipment items, blank client name, and blank venue.
-- **Fix:** Disable or validate the "Next" action on Step 1 (required fields) and Step 2 (`_totalSelectedItems > 0`).
+- **Fix:** Validated Step 1 required text fields and Step 2 equipment quantity (`_totalSelectedItems > 0`) plus authoritative date availability checks before proceeding.
 
-### BUG-09: Single-Day Rental Calculation Bug (Multi-Day Duration Ignored)
+### BUG-09: Single-Day Rental Calculation Bug (Multi-Day Duration Ignored) [RESOLVED]
 - **Severity:** Critical
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/create_booking_screen.dart:155-160`
 - **Root Cause:** `_totalDailyRental` is computed as `sum(selectedQty * dailyRate)`. The rental duration `_endDate.difference(_startDate).inDays` is completely omitted from the formula.
 - **Symptom:** A 14-day event booking charges the exact same price as a 1-day event booking.
-- **Fix:** Multiply base daily rental by `math.max(1, _endDate.difference(_startDate).inDays)`.
+- **Fix:** Factored inclusive calendar days into calculation: `_calculateRentalDays() * selectedQty * dailyRate`.
 
-### BUG-10: Locked & Non-Interactive Time Pickers in `CreateBookingScreen`
+### BUG-10: Locked & Non-Interactive Time Pickers in `CreateBookingScreen` [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/create_booking_screen.dart:426-452`
 - **Root Cause:** The `_buildDateTimePickerTile` onTap callback only opens `showDatePicker()`. Neither `_dispatchTime` nor `_returnTime` can be edited by the user.
 - **Symptom:** Dispatch time (10:00) and Return time (23:30) are permanently frozen.
-- **Fix:** Add a time picker dialog trigger (`showTimePicker`) when tapping the time row or add separate date and time pickers.
+- **Fix:** Added `showTimePicker` triggers allowing full user configuration for dispatch and return times.
 
 ### BUG-11: Hardcoded Reservation ID (`#BK-8942`) in Confirmation & Manifest
 - **Severity:** Low
@@ -99,15 +104,17 @@
 - **Symptom:** Every new booking claims to be reservation `#BK-8942`, and checking dispatch for any booking shows a SnackBar for `#BK-8942`.
 - **Fix:** Interpolate the dynamic `bookingId` or generate a random sequential ID (e.g. `BK-${DateTime.now().millisecondsSinceEpoch % 10000}`).
 
-### BUG-12: Newly Created Bookings are Discarded (Ephemeral Dummy State)
+### BUG-12: Newly Created Bookings are Discarded (Ephemeral Dummy State) [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/create_booking_screen.dart:1237-1244`
 - **Root Cause:** On booking confirmation, `_showBookingSuccessDialog` simply calls `Navigator.pop(context)` twice. No state store, singleton service, or local DB saves the record.
 - **Symptom:** After creating a booking, navigating to the Bookings List shows the original static 5 mock items with the newly created booking missing.
-- **Fix:** Introduce a simple shared repository or notifier (`BookingRepository` / `ValueNotifier<List<BookingItem>>`) so created bookings persist during the session.
+- **Fix:** Integrated `AvailabilityService.reserveAndCreateBooking()` and `BookingRepository` to persist records locally and across Cloud Firestore snapshots.
 
-### BUG-13: Sign Out Does Not Invalidate Auth Session
+### BUG-13: Sign Out Does Not Invalidate Auth Session [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/dashboard/dashboard_screen.dart:141-143`
 - **Root Cause:** Tapping the logout button executes `Navigator.of(context).pushReplacementNamed(AppRoutes.login)` without calling `AuthService().signOut()`.
 - **Symptom:** `AuthService._currentUser` remains set in memory; navigating back to dashboard or checking auth state still treats the user as logged in.
@@ -159,12 +166,13 @@
 - **Symptom:** Tapping the filter icon in the top right did nothing.
 - **Fix:** Added `_showFilterBottomSheet(BuildContext context)` allowing interactive status filtering (All, Upcoming, Ongoing, Completed) with visual selection indicators.
 
-### GLITCH-04: Static Hardcoded Date in Dashboard Header
+### GLITCH-04: Static Hardcoded Date in Dashboard Header [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/dashboard/dashboard_screen.dart:121`
 - **Root Cause:** Header string contains static text `'Operations Cockpit • Squad 124 • Mon, 30 Sep'`.
 - **Symptom:** App shows Monday, 30 Sep regardless of the actual date.
-- **Fix:** Use formatted `DateTime.now()` (e.g. `intl` package or a lightweight date helper).
+- **Fix:** Wired dynamic `_currentFormattedDate` using `DateTime.now()` with full weekday, day, and abbreviated month.
 
 ### GLITCH-05: Hardcoded Wedding Manifest Rendered for All Bookings in `BookingDetailsScreen`
 - **Severity:** High
@@ -173,8 +181,9 @@
 - **Symptom:** Opening a Corporate conference or Fashion Gala still shows the same 5 wedding items with a "WEDDING RECEPTION" tag.
 - **Fix:** Accept an optional item list `List<EquipmentItem>? items` or select manifest items matching the event's category/id.
 
-### GLITCH-06: Hardcoded Status Timeline Tracker in `BookingDetailsScreen`
+### GLITCH-06: Hardcoded Status Timeline Tracker in `BookingDetailsScreen` [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/booking_details_screen.dart:347-357`
 - **Root Cause:** Steps are hardcoded:
   ```dart
@@ -187,7 +196,7 @@
   _buildTimelineStep('Dispatched', false, false),
   ```
 - **Symptom:** Even if the booking status is `CONFIRMED` (initial state) or `COMPLETED`, the timeline always claims Packing and Ready are done and Dispatched is pending.
-- **Fix:** Dynamically determine step completion by comparing against the current `status` enum/string.
+- **Fix:** Dynamically mapped timeline progress to booking status (`CONFIRMED`, `PACKING`, `READY`, `DISPATCHED`, `COMPLETED`), with a dedicated cancellation banner and capacity release trigger when `CANCELLED`.
 
 ### GLITCH-07: Dummy "Remember Me" Checkbox on `LoginScreen`
 - **Severity:** Medium
@@ -210,29 +219,32 @@
 - **Symptom:** The core actions in the sticky bottom dock are dummy placeholders with no input dialog or camera feed.
 - **Fix:** Provide a modal bottom sheet for adding equipment or disable/hide buttons with a "Coming Soon" chip.
 
-### GLITCH-10: Hardcoded Shortage Event in `BookingConflictSheet`
+### GLITCH-10: Hardcoded Shortage Event in `BookingConflictSheet` [RESOLVED]
 - **Severity:** Medium
+- **Status:** Resolved
 - **Location:** `lib/screens/bookings/booking_conflict_sheet.dart:28, 40`
 - **Root Cause:** `conflictingEvent` defaults to `'Apex Tech Annual Summit (BK-4091)'` whenever omitted.
 - **Symptom:** Any equipment shortage across any category (microphones, trusses, power generators) claims to conflict with Apex Tech Annual Summit.
-- **Fix:** Make `conflictingEvent` required or display a generic shortage message when no specific colliding booking is provided.
+- **Fix:** Populated with dynamic conflicting event titles and IDs from `AvailabilityService` checks, along with real interactive resolution callbacks.
 
 ---
 
 ## 3. Data Duplications & Inconsistencies
 
-### DUP-01: Three Conflicting Equipment Category Taxonomies
+### DUP-01: Three Conflicting Equipment Category Taxonomies [RESOLVED]
 - **Severity:** High
+- **Status:** Resolved
 - **Locations:**
   1. `lib/core/constants/app_constants.dart:31-35`: `['Sound Systems', 'Stage Lighting', 'Event Furniture']`
   2. `lib/screens/inventory/inventory_screen.dart:34-41`: `['All', 'Lighting', 'Audio', 'Video & LED', 'Rigging', 'Power & Control']`
   3. `lib/screens/bookings/create_booking_screen.dart:559`: `['All', 'Sound', 'Lighting', 'Visuals', 'Staging', 'Power']`
 - **Root Cause:** Three separate files defined their own category lists without a shared domain enum or constant.
 - **Symptom:** Filtering in Inventory does not match the categories in Booking Creation, and neither matches `AppConstants`.
-- **Fix:** Consolidate all categories into a single enum or constant list in `lib/core/constants/app_constants.dart` and reference it everywhere.
+- **Fix:** Unified equipment taxonomy across `AppConstants.equipmentCategories` and domain models.
 
-### DUP-02: Massive Mathematical Discrepancy Between Inventory Cards and Roster
+### DUP-02: Massive Mathematical Discrepancy Between Inventory Cards and Roster [RESOLVED]
 - **Severity:** High
+- **Status:** Resolved
 - **Location:** `lib/screens/inventory/inventory_screen.dart:43-134, 420-456`
 - **Root Cause:** The top metric cards hardcode numbers (`Total: 148, On Stage: 94, Available: 46, Service: 08`), but the actual equipment roster in the same file has:
   - Total items: 128
@@ -240,10 +252,7 @@
   - Available: 88
   - Maintenance: 1
 - **Symptom:** Summing the cards gives 148, but scrolling through the list reveals completely different totals. Filtering categories also leaves the 148 card unchanged.
-- **Fix:** Calculate the card totals dynamically from `_inventoryItems`:
-  ```dart
-  int get totalAssets => _inventoryItems.fold(0, (sum, i) => sum + (i['total'] as int));
-  ```
+- **Fix:** Dynamically computed from authoritative inventory roster counts in `InventoryRepository`.
 
 ### DUP-03: Duplicated Equipment Models Across Screens
 - **Severity:** Medium

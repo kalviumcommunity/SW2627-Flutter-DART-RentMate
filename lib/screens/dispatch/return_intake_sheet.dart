@@ -108,7 +108,7 @@ class _ReturnIntakeSheetState extends State<ReturnIntakeSheet> {
     return true;
   }
 
-  void _submitReconciliation() {
+  Future<void> _submitReconciliation() async {
     if (!_isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -123,23 +123,27 @@ class _ReturnIntakeSheetState extends State<ReturnIntakeSheet> {
 
     final inventoryRepo = InventoryRepository();
     final bookingRepo = BookingRepository();
+    final returnId = 'RET-${widget.bookingId}';
 
-    // Reconcile each item into inventory
-    for (final entry in _reconciledState.entries) {
-      final sku = entry.key;
-      final val = entry.value;
-      inventoryRepo.reconcileReturn(
-        sku: sku,
-        goodQty: val['good'] as int,
-        damagedQty: val['damaged'] as int,
-        missingQty: val['missing'] as int,
+    final returnItems = _reconciledState.entries.map((entry) => {
+      'sku': entry.key,
+      'goodQty': entry.value['good'] as int,
+      'damagedQty': entry.value['damaged'] as int,
+      'missingQty': entry.value['missing'] as int,
+      'note': entry.value['note'] as String? ?? '',
+    }).toList();
+
+    try {
+      // Authoritative batch reconciliation in Cloud Firestore & local cache
+      await inventoryRepo.reconcileReturnBatch(
+        returnId: returnId,
+        bookingId: widget.bookingId,
+        items: returnItems,
       );
-    }
 
-    // Advance booking status to COMPLETED
-    bookingRepo.updateBookingStatus(widget.bookingId, 'COMPLETED');
+      // Advance booking status to COMPLETED
+      await bookingRepo.updateBookingStatus(widget.bookingId, 'COMPLETED');
 
-    Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() => _isSubmitting = false);
         Navigator.of(context).pop();
@@ -156,7 +160,17 @@ class _ReturnIntakeSheetState extends State<ReturnIntakeSheet> {
           ),
         );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Failed to reconcile return: $e'),
+          ),
+        );
+      }
+    }
   }
 
   @override

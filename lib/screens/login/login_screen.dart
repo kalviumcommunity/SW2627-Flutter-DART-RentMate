@@ -240,7 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
           userRole = 'warehouse';
         } else if (lower.contains('admin')) {
           userRole = 'admin';
-        } else {
+        } else if (lower.contains('mayank') || lower.contains('coordinator')) {
+          userRole = 'coordinator';
+        } else if (enteredText.isNotEmpty) {
           userRole = _authService.getCachedUserRole(enteredText);
         }
 

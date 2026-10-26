@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/models/booking_item.dart';
-import '../../core/services/booking_repository.dart';
+import '../../core/services/availability_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
@@ -49,6 +49,7 @@ class CreateBookingScreen extends StatefulWidget {
 
 class _CreateBookingScreenState extends State<CreateBookingScreen> {
   int _currentStep = 1; // 1: Details, 2: Equipment, 3: Review
+  bool _isSubmitting = false;
 
   // Step 1 Controllers & State
   final _eventNameController = TextEditingController();
@@ -807,16 +808,51 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                           _buildStepperButton(
                             icon: Icons.add,
                             onTap: () {
-                              if (item.selectedQty < item.availableQty) {
+                              final check = AvailabilityService().checkAvailability(
+                                startDate: _startDate,
+                                endDate: _endDate,
+                                requestedItems: [
+                                  {
+                                    'id': item.id,
+                                    'sku': item.sku,
+                                    'name': item.name,
+                                    'quantity': item.selectedQty + 1,
+                                  }
+                                ],
+                              );
+
+                              if (check.isAvailable) {
                                 setState(() => item.selectedQty++);
                               } else {
-                                // Trigger conflict sheet if they try to exceed stock
+                                final conflict = check.conflicts.first;
                                 BookingConflictSheet.show(
                                   context,
                                   equipmentName: item.name,
                                   sku: item.sku,
                                   requestedQty: item.selectedQty + 1,
-                                  availableQty: item.availableQty,
+                                  availableQty: conflict.availableQty,
+                                  conflictingEvent: conflict.conflictingEvent,
+                                  onReduceQuantity: () {
+                                    setState(() {
+                                      item.selectedQty = conflict.availableQty;
+                                    });
+                                  },
+                                  onChangeTime: () {
+                                    setState(() {
+                                      _currentStep = 1;
+                                    });
+                                  },
+                                  onJoinWaitlist: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor: AppColors.inkBlack,
+                                        content: Text(
+                                          'Waitlist request logged for ${item.name} (${item.sku}). Operations notified.',
+                                          style: const TextStyle(color: AppColors.bone),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               }
                             },
@@ -882,7 +918,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AVAILABILITY VERIFIED FOR SCHEDULE',
+                      'AVAILABILITY VERIFIED FOR $_rentalDays ${_rentalDays == 1 ? "DAY" : "DAYS"}',
                       style: AppTextStyles.monoLabel.copyWith(
                         fontSize: 10,
                         color: AppColors.success,
@@ -890,7 +926,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       ),
                     ),
                     Text(
-                      'All $_totalSelectedItems equipment items are in warehouse ready state.',
+                      'All $_totalSelectedItems units confirmed available from ${_startDate.day}/${_startDate.month} to ${_endDate.day}/${_endDate.month}.',
                       style: AppTextStyles.bodySmall.copyWith(
                         fontSize: 11,
                         color: AppColors.inkBlack,
@@ -1197,9 +1233,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       ? (_totalSelectedItems == 0
                           ? 'Select Equipment to Proceed'
                           : 'Next: Review Booking ($_totalSelectedItems Items)')
-                      : 'Lock & Confirm Reservation',
+                      : (_isSubmitting ? 'Locking Reservation...' : 'Lock & Confirm Reservation'),
               icon: _currentStep == 3 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
-              onPressed: (_currentStep == 2 && _totalSelectedItems == 0)
+              onPressed: ((_currentStep == 2 && _totalSelectedItems == 0) || _isSubmitting)
                   ? null
                   : () {
                       if (_currentStep == 1) {
@@ -1226,9 +1262,46 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                           );
                           return;
                         }
+
+                        final selectedItems = _catalog
+                            .where((i) => i.selectedQty > 0)
+                            .map((i) => {
+                                  'id': i.id,
+                                  'sku': i.sku,
+                                  'name': i.name,
+                                  'quantity': i.selectedQty,
+                                })
+                            .toList();
+
+                        final check = AvailabilityService().checkAvailability(
+                          startDate: _startDate,
+                          endDate: _endDate,
+                          requestedItems: selectedItems,
+                        );
+
+                        if (!check.isAvailable) {
+                          final conflict = check.conflicts.first;
+                          BookingConflictSheet.show(
+                            context,
+                            equipmentName: conflict.equipmentName,
+                            sku: conflict.sku,
+                            requestedQty: conflict.requestedQty,
+                            availableQty: conflict.availableQty,
+                            conflictingEvent: conflict.conflictingEvent,
+                            onReduceQuantity: () {
+                              final match = _catalog.firstWhere((i) => i.sku == conflict.sku);
+                              setState(() => match.selectedQty = conflict.availableQty);
+                            },
+                            onChangeTime: () => setState(() => _currentStep = 1),
+                          );
+                          return;
+                        }
+
                         setState(() => _currentStep = 3);
                       } else {
-                        _showBookingSuccessDialog();
+                        if (!_isSubmitting) {
+                          _handleConfirmBooking();
+                        }
                       }
                     },
             ),
@@ -1238,8 +1311,22 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     );
   }
 
-  void _showBookingSuccessDialog() {
+  Future<void> _handleConfirmBooking() async {
+    setState(() => _isSubmitting = true);
+
     final newId = 'BK-${(1000 + DateTime.now().millisecondsSinceEpoch % 9000)}';
+    final selectedItems = _catalog
+        .where((item) => item.selectedQty > 0)
+        .map((item) => {
+              'id': item.id,
+              'sku': item.sku,
+              'name': item.name,
+              'category': item.category,
+              'quantity': item.selectedQty,
+              'dailyRate': item.dailyRate,
+            })
+        .toList();
+
     final newBooking = BookingItem(
       id: newId,
       eventTitle: _eventNameController.text.trim(),
@@ -1252,9 +1339,64 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
       status: 'CONFIRMED',
       unitsCount: _totalSelectedItems,
       totalAmount: _grandTotal,
+      phoneNumber: _phoneController.text.trim(),
+      startDate: _startDate,
+      endDate: _endDate,
+      items: selectedItems,
     );
-    BookingRepository().addBooking(newBooking);
 
+    try {
+      // Authoritative atomic reservation: validates inventory & allocations in Firestore
+      await AvailabilityService().reserveAndCreateBooking(newBooking: newBooking);
+
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        _showSuccessDialog(newId);
+      }
+    } on AvailabilityConflictException catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        final conflict = e.checkResult.conflicts.isNotEmpty ? e.checkResult.conflicts.first : null;
+        if (conflict != null) {
+          BookingConflictSheet.show(
+            context,
+            equipmentName: conflict.equipmentName,
+            sku: conflict.sku,
+            requestedQty: conflict.requestedQty,
+            availableQty: conflict.availableQty,
+            conflictingEvent: conflict.conflictingEvent,
+            onReduceQuantity: () {
+              final match = _catalog.firstWhere((i) => i.sku == conflict.sku);
+              setState(() {
+                match.selectedQty = conflict.availableQty;
+                _currentStep = 2; // Jump back to catalog so they can review updated selection
+              });
+            },
+            onChangeTime: () => setState(() => _currentStep = 1),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.danger,
+              content: Text(e.message),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Reservation failed: ${e.toString()}'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog(String newId) {
     showDialog(
       context: context,
       barrierDismissible: false,

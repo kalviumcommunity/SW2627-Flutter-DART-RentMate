@@ -15,10 +15,21 @@ class InventoryRepository {
   static final InventoryRepository _instance = InventoryRepository._internal();
   factory InventoryRepository() => _instance;
 
+  /// Explicit flag to toggle demo fixtures for testing or local sandboxing.
+  static bool isDemoMode = false;
+
+  bool isLoading = false;
+  bool hasReceivedRemoteSnapshot = false;
+  String? errorMessage;
+
   StreamSubscription<QuerySnapshot>? _firestoreSubscription;
 
   InventoryRepository._internal() {
-    itemsNotifier = ValueNotifier<List<Map<String, dynamic>>>(List.from(_initialItems));
+    final useInitial = !AuthService().isFirebaseInitialized || isDemoMode;
+    itemsNotifier = ValueNotifier<List<Map<String, dynamic>>>(
+      useInitial ? List.from(_initialItems) : const [],
+    );
+    isLoading = AuthService().isFirebaseInitialized && !isDemoMode;
     _initFirestoreListener();
   }
 
@@ -30,23 +41,40 @@ class InventoryRepository {
             .snapshots()
             .listen(
           (snapshot) {
-            if (snapshot.docs.isNotEmpty) {
-              final remoteItems = snapshot.docs.map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                data['total'] = (data['totalQuantity'] ?? data['total'] ?? 0) as int;
-                data['available'] = (data['rentableQuantity'] ?? data['available'] ?? 0) as int;
-                data['deployed'] = (data['deployed'] ?? 0) as int;
-                return data;
-              }).toList();
-              itemsNotifier.value = remoteItems;
-            }
+            // Authoritative: replace collection with actual remote docs even if empty
+            final remoteItems = snapshot.docs.map((doc) {
+              final data = Map<String, dynamic>.from(doc.data() as Map<dynamic, dynamic>? ?? {});
+              data['id'] = doc.id;
+              data['sku'] = (data['sku'] ?? doc.id).toString();
+              data['name'] = (data['name'] ?? data['sku']).toString();
+              data['total'] = ((data['totalQuantity'] ?? data['total'] ?? 0) as num).toInt();
+              data['available'] = ((data['rentableQuantity'] ?? data['available'] ?? 0) as num).toInt();
+              data['deployed'] = ((data['deployed'] ?? 0) as num).toInt();
+              final statusStr = (data['status'] ?? 'IN WAREHOUSE').toString().toUpperCase();
+              data['status'] = statusStr;
+              data['statusColor'] = statusStr == 'MAINTENANCE'
+                  ? AppColors.warning
+                  : (statusStr == 'DEPLOYED' ? AppColors.burntCopper : AppColors.success);
+              data['statusBg'] = statusStr == 'MAINTENANCE'
+                  ? AppColors.warningSubtle
+                  : (statusStr == 'DEPLOYED' ? AppColors.copperSubtle : AppColors.successSubtle);
+              return data;
+            }).toList();
+
+            itemsNotifier.value = remoteItems;
+            hasReceivedRemoteSnapshot = true;
+            isLoading = false;
+            errorMessage = null;
           },
           onError: (e) {
+            isLoading = false;
+            errorMessage = e.toString();
             debugPrint('Firestore equipment subscription notice: $e');
           },
         );
       } catch (e) {
+        isLoading = false;
+        errorMessage = e.toString();
         debugPrint('Could not initialize Firestore equipment listener: $e');
       }
     }
@@ -226,8 +254,134 @@ class InventoryRepository {
         return total + (maint > 0 ? maint : (item['status'] == 'MAINTENANCE' ? 1 : 0));
       });
 
+  /// Atomically reconciles equipment return intake and updates inventory and return audit logs.
+  /// Uses [returnId] for strict idempotency to prevent repeated submissions from double-incrementing stock.
+  Future<void> reconcileReturnBatch({
+    required String returnId,
+    required String bookingId,
+    required List<Map<String, dynamic>> items,
+    String? recordedBy,
+    String? notes,
+  }) async {
+    if (AuthService().isFirebaseInitialized) {
+      final firestore = FirebaseFirestore.instance;
+      await firestore.runTransaction((transaction) async {
+        final returnRef = firestore.collection('returns').doc(returnId);
+        final returnSnap = await transaction.get(returnRef);
+        if (returnSnap.exists) {
+          // Idempotent: return batch has already been processed
+          return;
+        }
+
+        final bookingRef = firestore.collection('bookings').doc(bookingId);
+        final bookingSnap = await transaction.get(bookingRef);
+
+        final Map<String, DocumentSnapshot> eqSnaps = {};
+        for (final item in items) {
+          final sku = (item['sku'] ?? '').toString();
+          if (sku.isEmpty) continue;
+          final eqRef = firestore.collection('equipment').doc(sku);
+          eqSnaps[sku] = await transaction.get(eqRef);
+        }
+
+        // Apply equipment updates inside the same transaction
+        for (final item in items) {
+          final sku = (item['sku'] ?? '').toString();
+          if (sku.isEmpty) continue;
+          final eqSnap = eqSnaps[sku];
+          final eqRef = firestore.collection('equipment').doc(sku);
+          final goodQty = (item['goodQty'] ?? item['goodQuantity'] ?? 0) as int;
+          final damagedQty = (item['damagedQty'] ?? item['damagedQuantity'] ?? 0) as int;
+          final missingQty = (item['missingQty'] ?? item['missingQuantity'] ?? 0) as int;
+
+          final eqData = eqSnap != null && eqSnap.exists
+              ? Map<String, dynamic>.from(eqSnap.data() as Map<dynamic, dynamic>)
+              : <String, dynamic>{};
+
+          final int total = (eqData['totalQuantity'] ?? eqData['total'] ?? 100) as int;
+          final int prevAvail = (eqData['rentableQuantity'] ?? eqData['available'] ?? total) as int;
+          final int prevDep = (eqData['deployed'] ?? 0) as int;
+          final int prevMaint = (eqData['maintenanceQuantity'] ?? eqData['maintenance'] ?? 0) as int;
+
+          final newAvail = (prevAvail + goodQty).clamp(0, total);
+          final newDep = (prevDep - (goodQty + damagedQty + missingQty)).clamp(0, total);
+          final newMaint = (prevMaint + damagedQty).clamp(0, total);
+          final newStatus = (newMaint > 0)
+              ? 'MAINTENANCE'
+              : (newDep > 0 ? 'DEPLOYED' : 'IN WAREHOUSE');
+
+          transaction.set(eqRef, {
+            'rentableQuantity': newAvail,
+            'available': newAvail,
+            'deployed': newDep,
+            'maintenanceQuantity': newMaint,
+            'status': newStatus,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+
+        // Write return log record
+        transaction.set(returnRef, {
+          'returnId': returnId,
+          'bookingId': bookingId,
+          'items': items,
+          'recordedBy': recordedBy ?? AuthService().currentUser?.email ?? 'operations_lead',
+          'notes': notes ?? '',
+          'returnedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Advance booking status to COMPLETED if it exists
+        if (bookingSnap.exists) {
+          transaction.update(bookingRef, {
+            'status': 'COMPLETED',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+    }
+
+    // Update local memory cache for immediate UI responsiveness
+    final current = List<Map<String, dynamic>>.from(itemsNotifier.value);
+    for (final returnItem in items) {
+      final sku = (returnItem['sku'] ?? '').toString().toUpperCase();
+      final goodQty = (returnItem['goodQty'] ?? returnItem['goodQuantity'] ?? 0) as int;
+      final damagedQty = (returnItem['damagedQty'] ?? returnItem['damagedQuantity'] ?? 0) as int;
+      final missingQty = (returnItem['missingQty'] ?? returnItem['missingQuantity'] ?? 0) as int;
+
+      final idx = current.indexWhere((e) => e['sku'].toString().toUpperCase() == sku);
+      if (idx != -1) {
+        final item = Map<String, dynamic>.from(current[idx]);
+        final total = (item['total'] as num?)?.toInt() ?? 100;
+        final prevAvail = (item['available'] as num?)?.toInt() ?? total;
+        final prevDep = (item['deployed'] as num?)?.toInt() ?? 0;
+
+        final newAvail = (prevAvail + goodQty).clamp(0, total);
+        final newDep = (prevDep - (goodQty + damagedQty + missingQty)).clamp(0, total);
+
+        item['available'] = newAvail;
+        item['deployed'] = newDep;
+        item['progressRatio'] = total > 0 ? (newDep / total).clamp(0.0, 1.0) : 0.0;
+        if (damagedQty > 0) {
+          item['status'] = 'MAINTENANCE';
+          item['statusColor'] = AppColors.warning;
+          item['statusBg'] = AppColors.warningSubtle;
+        } else if (newDep > 0) {
+          item['status'] = 'DEPLOYED';
+          item['statusColor'] = AppColors.burntCopper;
+          item['statusBg'] = AppColors.copperSubtle;
+        } else {
+          item['status'] = 'IN WAREHOUSE';
+          item['statusColor'] = AppColors.success;
+          item['statusBg'] = AppColors.successSubtle;
+        }
+        current[idx] = item;
+      }
+    }
+    itemsNotifier.value = current;
+  }
+
   /// Reconciles returns by SKU, adjusting available stock, maintenance, and deployed counts.
-  /// Also logs a return transaction to Cloud Firestore when connected.
+  /// Delegates to [reconcileReturnBatch] with a deterministic operation key.
   Future<void> reconcileReturn({
     required String sku,
     required int goodQty,
@@ -235,67 +389,19 @@ class InventoryRepository {
     required int missingQty,
     String? bookingId,
   }) async {
-    final current = List<Map<String, dynamic>>.from(itemsNotifier.value);
-    final index = current.indexWhere(
-      (element) => element['sku'].toString().toUpperCase() == sku.toUpperCase(),
-    );
-
-    if (index != -1) {
-      final item = Map<String, dynamic>.from(current[index]);
-      final int total = item['total'] as int;
-      final int prevAvailable = item['available'] as int;
-      final int prevDeployed = item['deployed'] as int;
-
-      final newAvailable = (prevAvailable + goodQty).clamp(0, total);
-      final newDeployed = (prevDeployed - (goodQty + damagedQty + missingQty)).clamp(0, total);
-
-      item['available'] = newAvailable;
-      item['deployed'] = newDeployed;
-      item['progressRatio'] = total > 0 ? (newDeployed / total).clamp(0.0, 1.0) : 0.0;
-
-      if (damagedQty > 0) {
-        item['status'] = 'MAINTENANCE';
-        item['statusColor'] = AppColors.warning;
-        item['statusBg'] = AppColors.warningSubtle;
-      } else if (newDeployed > 0) {
-        item['status'] = 'DEPLOYED';
-        item['statusColor'] = AppColors.burntCopper;
-        item['statusBg'] = AppColors.copperSubtle;
-      } else {
-        item['status'] = 'IN WAREHOUSE';
-        item['statusColor'] = AppColors.success;
-        item['statusBg'] = AppColors.successSubtle;
-      }
-
-      current[index] = item;
-      itemsNotifier.value = current;
-
-      if (AuthService().isFirebaseInitialized) {
-        try {
-          final firestore = FirebaseFirestore.instance;
-          // Update equipment in Firestore
-          await firestore.collection('equipment').doc(sku).set({
-            'rentableQuantity': newAvailable,
-            'deployed': newDeployed,
-            'status': item['status'],
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-
-          // Log return record
-          await firestore.collection('returns').add({
-            'sku': sku,
-            'bookingId': bookingId ?? 'UNSPECIFIED',
-            'goodQuantity': goodQty,
-            'damagedQuantity': damagedQty,
-            'missingQuantity': missingQty,
-            'returnedAt': FieldValue.serverTimestamp(),
-            'recordedBy': AuthService().currentUser?.email ?? 'operations_lead',
-          });
-        } catch (e) {
-          debugPrint('Firestore return reconciliation notice: $e');
+    final returnId = 'RET-${bookingId ?? "MANUAL"}-$sku-${DateTime.now().millisecondsSinceEpoch}';
+    await reconcileReturnBatch(
+      returnId: returnId,
+      bookingId: bookingId ?? 'UNSPECIFIED',
+      items: [
+        {
+          'sku': sku,
+          'goodQty': goodQty,
+          'damagedQty': damagedQty,
+          'missingQty': missingQty,
         }
-      }
-    }
+      ],
+    );
   }
 
   /// Adds a new equipment item into the warehouse registry.

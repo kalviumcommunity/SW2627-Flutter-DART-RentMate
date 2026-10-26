@@ -49,6 +49,7 @@ class CreateBookingScreen extends StatefulWidget {
 
 class _CreateBookingScreenState extends State<CreateBookingScreen> {
   int _currentStep = 1; // 1: Details, 2: Equipment, 3: Review
+  bool _isSubmitting = false;
 
   // Step 1 Controllers & State
   final _eventNameController = TextEditingController();
@@ -1232,9 +1233,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       ? (_totalSelectedItems == 0
                           ? 'Select Equipment to Proceed'
                           : 'Next: Review Booking ($_totalSelectedItems Items)')
-                      : 'Lock & Confirm Reservation',
+                      : (_isSubmitting ? 'Locking Reservation...' : 'Lock & Confirm Reservation'),
               icon: _currentStep == 3 ? Icons.lock_outline_rounded : Icons.arrow_forward_rounded,
-              onPressed: (_currentStep == 2 && _totalSelectedItems == 0)
+              onPressed: ((_currentStep == 2 && _totalSelectedItems == 0) || _isSubmitting)
                   ? null
                   : () {
                       if (_currentStep == 1) {
@@ -1298,7 +1299,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
 
                         setState(() => _currentStep = 3);
                       } else {
-                        _showBookingSuccessDialog();
+                        if (!_isSubmitting) {
+                          _handleConfirmBooking();
+                        }
                       }
                     },
             ),
@@ -1308,7 +1311,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     );
   }
 
-  void _showBookingSuccessDialog() {
+  Future<void> _handleConfirmBooking() async {
+    setState(() => _isSubmitting = true);
+
     final newId = 'BK-${(1000 + DateTime.now().millisecondsSinceEpoch % 9000)}';
     final selectedItems = _catalog
         .where((item) => item.selectedQty > 0)
@@ -1339,8 +1344,59 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
       endDate: _endDate,
       items: selectedItems,
     );
-    AvailabilityService().reserveAndCreateBooking(newBooking: newBooking);
 
+    try {
+      // Authoritative atomic reservation: validates inventory & allocations in Firestore
+      await AvailabilityService().reserveAndCreateBooking(newBooking: newBooking);
+
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        _showSuccessDialog(newId);
+      }
+    } on AvailabilityConflictException catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        final conflict = e.checkResult.conflicts.isNotEmpty ? e.checkResult.conflicts.first : null;
+        if (conflict != null) {
+          BookingConflictSheet.show(
+            context,
+            equipmentName: conflict.equipmentName,
+            sku: conflict.sku,
+            requestedQty: conflict.requestedQty,
+            availableQty: conflict.availableQty,
+            conflictingEvent: conflict.conflictingEvent,
+            onReduceQuantity: () {
+              final match = _catalog.firstWhere((i) => i.sku == conflict.sku);
+              setState(() {
+                match.selectedQty = conflict.availableQty;
+                _currentStep = 2; // Jump back to catalog so they can review updated selection
+              });
+            },
+            onChangeTime: () => setState(() => _currentStep = 1),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.danger,
+              content: Text(e.message),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Reservation failed: ${e.toString()}'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog(String newId) {
     showDialog(
       context: context,
       barrierDismissible: false,

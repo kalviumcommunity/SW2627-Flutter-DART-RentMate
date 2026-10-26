@@ -302,31 +302,31 @@ RentMate uses an inclusive calendar-day interval convention for event rentals: b
 $$\max(start_A, start_B) \le \min(end_A, end_B)$$
 Cancelled bookings (`status == 'CANCELLED'`) are strictly excluded from overlap calculations, immediately freeing capacity for subsequent bookings.
 
-## 7. Preventing Double Bookings & Concurrency Strategy
+## 7. Preventing Double Bookings & Distributed Concurrency Strategy
 
 To ensure zero over-reservation across distributed coordinator and warehouse devices:
-1. `AvailabilityService` calculates per-SKU, per-calendar-day availability across all days in $[start, end]$.
-2. Damaged/maintenance units (`status == 'MAINTENANCE'`) are subtracted from physical capacity ($Capacity_{rentable} = Total - Maintenance$).
-3. Atomic reservation is enforced via `AvailabilityService.reserveAndCreateBooking()`.
-4. If capacity is insufficient on any day in the window, an `AvailabilityConflictException` is thrown, returning:
-   - Required quantity and available quantity
-   - Shortage amount
-   - Colliding booking title and ID
-   - Colliding date
-5. Interactive resolution choices in `BookingConflictSheet`:
-   - Auto-reduction to maximum available stock.
-   - Immediate navigation back to date picker to select an alternative schedule.
-   - Cross-rental logging for external vendor sourcing.
+1. **Deterministic Allocation Records**: Stored at `allocations/{sku}_{yyyy-MM-dd}` tracking aggregate units and contributing booking IDs for every calendar day in the rental window $[start, end]$.
+2. **Authoritative Stock Lookups**: Reads physical equipment stock directly from `equipment/{sku}` inside the Firestore transaction. Missing records are strictly rejected (no arbitrary capacity assumptions).
+3. **Damaged & Maintenance Isolation**: Damaged and servicing units (`maintenanceQuantity` or `status == 'MAINTENANCE'`) are subtracted from physical capacity ($Capacity_{rentable} = Total - Maintenance$).
+4. **All-or-Nothing Atomic Reservation**: `AvailabilityService.reserveAndCreateBooking()` reads all equipment documents and all required daily allocation documents inside a single transaction. If any SKU or any single day lacks rentable capacity, the transaction aborts with typed `AvailabilityConflictException`, leaving zero partial allocations.
+5. **Reconciliation of Active Bookings**: `AvailabilityService.ensureAllocationsReconciled()` queries all non-cancelled, non-completed bookings from `bookings`, backfilling missing allocation records so existing capacity is always preserved before accepting new reservations.
+6. **Cancellation & Rescheduling**:
+   - Cancellation releases daily allocation records inside a transaction at most once and rejects invalid state transitions (cannot cancel dispatched or completed bookings).
+   - Rescheduling atomically validates the new date interval, releases old allocations, writes new allocations, and updates the booking document. If the new window is unavailable, original allocations remain intact.
+7. **Atomic & Idempotent Return Reconciler**: `InventoryRepository.reconcileReturnBatch()` uses deterministic operation keys (`RET-{bookingId}`) in transactions to update equipment stock, increment maintenance, and commit return logs without double-counting on retries.
 
 ## 8. Authentication, Authorization & Security Rules
 
 - Role definitions: `coordinator`, `warehouse`, and `admin` (see `UserModel` and `firestore.rules`).
 - Role-based routing: Warehouse staff are directed immediately to Tab 3 (`DispatchScreen`), while Coordinators land on Tab 0 (`Overview`).
+- **Fail-Closed Authorization**: `getUserRole()` in `firestore.rules` and `AuthService` returns `'none'` / `'warehouse'` if a profile document is missing or invalid, preventing privilege escalation.
+- Profile registration: Users cannot grant themselves `coordinator` or `admin` roles upon account creation.
 - Firestore Security Rules (`firestore.rules`):
   - `users`: Authenticated read; profile updates allowed without role escalation.
-  - `equipment`: Authenticated read; writes restricted to coordinators and admins.
-  - `bookings`: Authenticated read; creation and reschedule restricted to coordinators and admins. Status transitions (`PACKING`, `READY`, `DISPATCHED`, `COMPLETED`) allowed for warehouse staff.
-  - `dispatches` and `returns`: Accessible to warehouse, coordinator, and admin staff.
+  - `equipment`: Authenticated read; creation/deletion restricted to coordinators/admins; counts/status updates allowed for warehouse.
+  - `allocations`: Authenticated read; allocation writes restricted to coordinators and warehouse crew during booking mutations.
+  - `bookings`: Authenticated read; creation/reschedule restricted to coordinators and admins. Warehouse crew can update `status`, `packedSkus`, and `updatedAt`.
+  - `dispatches` and `returns`: Accessible to warehouse crew and coordinators. Return updates/deletes restricted to admins.
 
 ## 9. Proposed Flutter Folder Structure
 

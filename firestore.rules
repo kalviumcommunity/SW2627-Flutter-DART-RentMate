@@ -11,10 +11,11 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    // Fail-closed role resolution: missing or invalid profile returns 'none'
     function getUserRole() {
       return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? getUserData().role
-        : 'coordinator';
+        : 'none';
     }
 
     function isAdmin() {
@@ -26,19 +27,20 @@ service cloud.firestore {
     }
 
     function isWarehouse() {
-      return isAuthenticated() && (getUserRole() == 'warehouse' || isAdmin());
+      return isAuthenticated() && (getUserRole() == 'warehouse' || isCoordinator());
     }
 
     // 1. Users Collection
     match /users/{userId} {
-      // Employees can read profiles
+      // Authenticated employees can read profiles
       allow read: if isAuthenticated();
 
-      // Employees can create their initial profile, but regular users cannot alter their role
+      // Employees can create their initial profile, but regular registration CANNOT grant elevated roles.
+      // Default role must be 'warehouse' or omit role; admin role requires existing admin privileges.
       allow create: if isAuthenticated() && request.auth.uid == userId
-                    && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'coordinator' || isAdmin());
+                    && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'warehouse' || isAdmin());
 
-      // Only admins can change roles; users can update their name/preferences
+      // Only admins can change roles; users can update their own name/preferences
       allow update: if isAuthenticated() && (
         isAdmin() ||
         (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
@@ -51,37 +53,49 @@ service cloud.firestore {
     match /equipment/{equipmentId} {
       allow read: if isAuthenticated();
 
-      // Coordinators and admins can add/edit equipment; warehouse staff can update physical counts/status
+      // Coordinators and admins can add/delete equipment; warehouse staff can update physical counts/status
       allow create, delete: if isCoordinator();
       allow update: if isCoordinator() || isWarehouse();
     }
 
-    // 3. Bookings Collection
+    // 3. Allocations Collection (Authoritative Date-Interval Reservations)
+    match /allocations/{allocationId} {
+      allow read: if isAuthenticated();
+
+      // Allocations are updated atomically during booking reservation, reschedule, and cancellation
+      allow create, update: if isCoordinator() || isWarehouse();
+      allow delete: if isAdmin();
+    }
+
+    // 4. Bookings Collection
     match /bookings/{bookingId} {
       allow read: if isAuthenticated();
 
       // Only coordinators and admins can create/reschedule bookings
       allow create: if isCoordinator() && request.resource.data.status == 'CONFIRMED';
 
-      // Coordinators can update details; warehouse crew can update status (PACKING, READY, DISPATCHED, COMPLETED)
-      allow update: if isCoordinator() || (isWarehouse() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+      // Coordinators can update details; warehouse crew can update status, packedSkus, and updatedAt
+      allow update: if isCoordinator() || (
+        isWarehouse() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'packedSkus', 'updatedAt'])
+      );
 
-      // Only coordinators and admins can cancel
+      // Only admins can delete bookings
       allow delete: if isAdmin();
     }
 
-    // 4. Dispatches Collection
+    // 5. Dispatches Collection
     match /dispatches/{dispatchId} {
       allow read: if isAuthenticated();
-      allow create, update: if isWarehouse() || isCoordinator();
+      allow create, update: if isWarehouse();
       allow delete: if isAdmin();
     }
 
-    // 5. Returns Collection
+    // 6. Returns Collection
     match /returns/{returnId} {
       allow read: if isAuthenticated();
-      allow create, update: if isWarehouse() || isCoordinator();
-      allow delete: if isAdmin();
+      allow create: if isWarehouse();
+      allow update, delete: if isAdmin();
     }
   }
 }

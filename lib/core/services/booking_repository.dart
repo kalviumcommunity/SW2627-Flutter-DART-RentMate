@@ -15,10 +15,22 @@ class BookingRepository {
   static final BookingRepository _instance = BookingRepository._internal();
   factory BookingRepository() => _instance;
 
+  /// Explicit flag to toggle demo fixtures for testing or local sandboxing.
+  /// When false and Firebase is initialized, authoritative cloud data is required.
+  static bool isDemoMode = false;
+
+  bool isLoading = false;
+  bool hasReceivedRemoteSnapshot = false;
+  String? errorMessage;
+
   StreamSubscription<QuerySnapshot>? _firestoreSubscription;
 
   BookingRepository._internal() {
-    bookingsNotifier = ValueNotifier<List<BookingItem>>(List.from(_initialBookings));
+    final useInitial = !AuthService().isFirebaseInitialized || isDemoMode;
+    bookingsNotifier = ValueNotifier<List<BookingItem>>(
+      useInitial ? List.from(_initialBookings) : const [],
+    );
+    isLoading = AuthService().isFirebaseInitialized && !isDemoMode;
     _initFirestoreListener();
   }
 
@@ -31,18 +43,30 @@ class BookingRepository {
             .snapshots()
             .listen(
           (snapshot) {
-            if (snapshot.docs.isNotEmpty) {
-              final remoteBookings = snapshot.docs
-                  .map((doc) => BookingItem.fromFirestore(doc))
-                  .toList();
-              bookingsNotifier.value = remoteBookings;
-            }
+            // Authoritative: replace collection with actual remote docs even if empty
+            final remoteBookings = snapshot.docs.map((doc) {
+              try {
+                return BookingItem.fromFirestore(doc);
+              } catch (_) {
+                final data = doc.data() as Map<String, dynamic>? ?? {};
+                return BookingItem.fromMap(data, id: doc.id);
+              }
+            }).toList();
+
+            bookingsNotifier.value = remoteBookings;
+            hasReceivedRemoteSnapshot = true;
+            isLoading = false;
+            errorMessage = null;
           },
           onError: (e) {
+            isLoading = false;
+            errorMessage = e.toString();
             debugPrint('Firestore bookings subscription notice: $e');
           },
         );
       } catch (e) {
+        isLoading = false;
+        errorMessage = e.toString();
         debugPrint('Could not initialize Firestore bookings listener: $e');
       }
     }
@@ -176,18 +200,28 @@ class BookingRepository {
 
   List<BookingItem> get bookings => bookingsNotifier.value;
 
-  /// Adds a new booking to session state and persists to Firestore when connected.
-  Future<void> addBooking(BookingItem item) async {
-    bookingsNotifier.value = [item, ...bookingsNotifier.value];
+  /// Adds a new booking to session state and optionally persists to Firestore when connected.
+  /// Set [persistToRemote] to false when called after an authoritative atomic transaction write.
+  Future<void> addBooking(BookingItem item, {bool persistToRemote = true}) async {
+    // Prevent duplicate entries in local notifier
+    final existingIndex = bookingsNotifier.value.indexWhere((b) => b.id == item.id);
+    if (existingIndex != -1) {
+      final updated = List<BookingItem>.from(bookingsNotifier.value);
+      updated[existingIndex] = item;
+      bookingsNotifier.value = updated;
+    } else {
+      bookingsNotifier.value = [item, ...bookingsNotifier.value];
+    }
 
-    if (AuthService().isFirebaseInitialized) {
+    if (persistToRemote && AuthService().isFirebaseInitialized) {
       try {
         await FirebaseFirestore.instance
             .collection('bookings')
             .doc(item.id)
             .set(item.toMap(), SetOptions(merge: true));
       } catch (e) {
-        debugPrint('Firestore addBooking notice: $e');
+        debugPrint('Firestore addBooking error: $e');
+        rethrow;
       }
     }
   }
@@ -213,8 +247,78 @@ class BookingRepository {
         });
       } catch (e) {
         debugPrint('Firestore updateBookingStatus notice: $e');
+        rethrow;
       }
     }
+  }
+
+  /// Persists warehouse manifest flight case checklist progress across sessions.
+  Future<void> updateBookingChecklist(String id, List<String> packedSkus) async {
+    final list = bookingsNotifier.value.map((b) {
+      if (b.id == id) {
+        return b.copyWith(packedSkus: packedSkus, updatedAt: DateTime.now());
+      }
+      return b;
+    }).toList();
+    bookingsNotifier.value = list;
+
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(id)
+            .update({
+          'packedSkus': packedSkus,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Firestore updateBookingChecklist notice: $e');
+      }
+    }
+  }
+
+  /// Authoritatively commits a dispatch record and transitions booking to DISPATCHED.
+  Future<void> persistDispatchRecord({
+    required String bookingId,
+    required String recordedBy,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final currentBooking = getBookingById(bookingId);
+    if (currentBooking == null) {
+      throw Exception('Booking #$bookingId not found.');
+    }
+    if (currentBooking.status.toUpperCase() == 'CANCELLED') {
+      throw Exception('Cannot dispatch cancelled booking #$bookingId.');
+    }
+    if (currentBooking.status.toUpperCase() == 'DISPATCHED') {
+      return; // Idempotent no-op
+    }
+
+    if (AuthService().isFirebaseInitialized) {
+      final firestore = FirebaseFirestore.instance;
+      final batch = firestore.batch();
+
+      final dispatchRef = firestore.collection('dispatches').doc(bookingId);
+      final bookingRef = firestore.collection('bookings').doc(bookingId);
+
+      batch.set(dispatchRef, {
+        'bookingId': bookingId,
+        'status': 'DISPATCHED',
+        'items': items,
+        'dispatchedAt': FieldValue.serverTimestamp(),
+        'recordedBy': recordedBy,
+      }, SetOptions(merge: true));
+
+      batch.update(bookingRef, {
+        'status': 'DISPATCHED',
+        'dispatchedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+    }
+
+    await updateBookingStatus(bookingId, 'DISPATCHED');
   }
 
   /// Replaces an existing booking with updated metadata and syncs to Firestore.
@@ -233,6 +337,7 @@ class BookingRepository {
             .set(item.toMap(), SetOptions(merge: true));
       } catch (e) {
         debugPrint('Firestore updateBooking notice: $e');
+        rethrow;
       }
     }
   }

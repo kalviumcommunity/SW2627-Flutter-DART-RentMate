@@ -15,6 +15,7 @@ class BookingItem {
   final DateTime? startDate;
   final DateTime? endDate;
   final List<Map<String, dynamic>> items;
+  final List<String> packedSkus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? createdBy;
@@ -33,6 +34,7 @@ class BookingItem {
     this.startDate,
     this.endDate,
     this.items = const [],
+    this.packedSkus = const [],
     this.createdAt,
     this.updatedAt,
     this.createdBy,
@@ -127,6 +129,7 @@ class BookingItem {
       startDate: sDate,
       endDate: eDate,
       items: parseItems(map['items']),
+      packedSkus: (map['packedSkus'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
       createdBy: map['createdBy']?.toString(),
@@ -157,6 +160,7 @@ class BookingItem {
       'startAt': startDate != null ? Timestamp.fromDate(startDate!) : null,
       'endAt': endDate != null ? Timestamp.fromDate(endDate!) : null,
       'items': items,
+      'packedSkus': packedSkus,
       'createdBy': createdBy,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -177,6 +181,7 @@ class BookingItem {
     DateTime? startDate,
     DateTime? endDate,
     List<Map<String, dynamic>>? items,
+    List<String>? packedSkus,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? createdBy,
@@ -195,6 +200,7 @@ class BookingItem {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       items: items ?? this.items,
+      packedSkus: packedSkus ?? this.packedSkus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,

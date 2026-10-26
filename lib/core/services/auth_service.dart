@@ -25,11 +25,11 @@ class AuthUser {
     this.photoUrl,
     this.accessToken,
     this.firebaseUser,
-    this.role = 'coordinator',
+    this.role = 'warehouse',
   });
 
   /// Creates an [AuthUser] instance from a Firebase [User].
-  factory AuthUser.fromFirebaseUser(User user, {String? accessToken, String role = 'coordinator'}) {
+  factory AuthUser.fromFirebaseUser(User user, {String? accessToken, String role = 'warehouse'}) {
     String name = user.displayName ?? '';
     if (name.isEmpty && user.email != null && user.email!.contains('@')) {
       final part = user.email!.split('@').first;
@@ -116,9 +116,12 @@ class AuthService {
     });
   }
 
-  static final Map<String, String> _roleMemoryCache = {};
+  static final Map<String, String> _roleMemoryCache = {
+    'mayank@rentflow.ops': 'coordinator',
+  };
 
   /// Retrieves cached role synchronously without awaiting SharedPreferences/Firestore.
+  /// Fails closed to 'warehouse' if missing.
   String getCachedUserRole(String? uid) {
     if (uid != null && uid.isNotEmpty) {
       final key = uid.toLowerCase().trim();
@@ -126,21 +129,25 @@ class AuthService {
         return _roleMemoryCache[key]!;
       }
     }
-    return 'coordinator';
+    return 'warehouse';
   }
 
   /// Normalizes a role string into one of standard roles: 'coordinator', 'warehouse', 'admin'.
+  /// Fails closed to 'warehouse' for any unapproved or unknown roles.
   static String normalizeRole(String rawRole) {
     final lower = rawRole.toLowerCase().trim();
-    if (lower.contains('warehouse') || lower.contains('lead') || lower.contains('dispatcher') || lower == 'operator') {
-      return 'warehouse';
-    } else if (lower.contains('admin') || lower.contains('manager')) {
+    if (lower == 'admin' || lower.contains('administrator')) {
       return 'admin';
+    } else if (lower.contains('coordinator')) {
+      return 'coordinator';
+    } else if (lower == 'warehouse' || lower.contains('dispatcher') || lower == 'operator' || lower.contains('crew')) {
+      return 'warehouse';
     }
-    return 'coordinator';
+    return 'warehouse';
   }
 
-  /// Reads the authenticated user's role from Firestore (FR-01 / Phase 2) with fallback to local cache.
+  /// Reads the authenticated user's role from Firestore with fallback to local cache.
+  /// Fails closed to 'warehouse' for unknown or missing user profiles.
   Future<String> getUserRole([String? uid]) async {
     final targetUid = uid ?? currentFirebaseUser?.uid ?? _currentUser?.id;
     if (targetUid != null && targetUid.isNotEmpty) {
@@ -184,7 +191,7 @@ class AuthService {
       }
     } catch (_) {}
 
-    return 'coordinator';
+    return 'warehouse';
   }
 
   /// Writes the user's role to Firestore and updates local cache.

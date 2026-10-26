@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/availability_service.dart';
 import '../../core/services/booking_repository.dart';
 import '../../core/theme/app_colors.dart';
@@ -60,16 +61,22 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     _currentStatus = widget.status;
     _effectiveItems = _computeEffectiveManifestItems();
 
-    // If booking is already READY, DISPATCHED, or COMPLETED, default items to loaded
-    final upper = _currentStatus.toUpperCase();
-    if (upper == 'READY' || upper == 'DISPATCHED' || upper == 'COMPLETED') {
-      for (final item in _effectiveItems) {
-        _loadedSkus.add(item['sku'] as String);
-      }
-    } else if (upper == 'PACKING') {
-      // Partially packed for demo
-      if (_effectiveItems.isNotEmpty) {
-        _loadedSkus.add(_effectiveItems.first['sku'] as String);
+    // Sync persistent checklist progress from booking repository
+    final repoBooking = BookingRepository().getBookingById(widget.bookingId);
+    if (repoBooking != null && repoBooking.packedSkus.isNotEmpty) {
+      _loadedSkus.addAll(repoBooking.packedSkus);
+    } else {
+      // If booking is already READY, DISPATCHED, or COMPLETED, default items to loaded
+      final upper = _currentStatus.toUpperCase();
+      if (upper == 'READY' || upper == 'DISPATCHED' || upper == 'COMPLETED') {
+        for (final item in _effectiveItems) {
+          _loadedSkus.add(item['sku'] as String);
+        }
+      } else if (upper == 'PACKING') {
+        // Partially packed for demo
+        if (_effectiveItems.isNotEmpty) {
+          _loadedSkus.add(_effectiveItems.first['sku'] as String);
+        }
       }
     }
   }
@@ -264,6 +271,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               BookingRepository().updateBookingStatus(widget.bookingId, 'READY');
             }
           });
+          BookingRepository().updateBookingChecklist(widget.bookingId, _loadedSkus.toList());
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -325,17 +333,21 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await AvailabilityService().cancelBooking(widget.bookingId);
-              setState(() {
-                _currentStatus = 'CANCELLED';
-              });
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: AppColors.inkBlack,
-                    content: Text('Reservation #${widget.bookingId} CANCELLED. Equipment capacity released.'),
-                  ),
-                );
+              try {
+                await AvailabilityService().cancelBooking(widget.bookingId);
+                setState(() {
+                  _currentStatus = 'CANCELLED';
+                });
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.inkBlack,
+                      content: Text('Reservation #${widget.bookingId} CANCELLED. Equipment capacity released.'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                debugPrint('ERROR in cancelBooking: $e');
               }
             },
             child: const Text('Confirm Cancellation'),
@@ -711,15 +723,32 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 RentFlowButton(
                   label: 'Dispatch Vehicle (Departure)',
                   icon: Icons.send_rounded,
-                  onPressed: () {
-                    setState(() => _currentStatus = 'DISPATCHED');
-                    BookingRepository().updateBookingStatus(widget.bookingId, 'DISPATCHED');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppColors.inkBlack,
-                        content: Text('Reservation #${widget.bookingId} DISPATCHED to venue!'),
-                      ),
-                    );
+                  onPressed: () async {
+                    try {
+                      await BookingRepository().persistDispatchRecord(
+                        bookingId: widget.bookingId,
+                        recordedBy: AuthService().currentUser?.email ?? 'operations_lead',
+                        items: _effectiveItems,
+                      );
+                      setState(() => _currentStatus = 'DISPATCHED');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: AppColors.inkBlack,
+                            content: Text('Reservation #${widget.bookingId} DISPATCHED to venue!'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: AppColors.danger,
+                            content: Text('Failed to dispatch vehicle: $e'),
+                          ),
+                        );
+                      }
+                    }
                   },
                 )
               else if (_currentStatus == 'DISPATCHED' || _currentStatus == 'AWAITING RETURN')
@@ -960,6 +989,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   _loadedSkus.remove(sku);
                 }
               });
+              BookingRepository().updateBookingChecklist(widget.bookingId, _loadedSkus.toList());
             },
           ),
           const SizedBox(width: 4),

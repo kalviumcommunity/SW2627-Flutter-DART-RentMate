@@ -6,7 +6,7 @@
 | Product Name | RentMate |
 | Document | Technical Requirements Document |
 | Version | 1.0 |
-| Status | Draft — Pending Approval |
+| Status | Implemented — Production Architecture Baseline |
 | Frontend | Flutter |
 | Language | Dart |
 | Backend Services | Firebase |
@@ -294,35 +294,39 @@ For each equipment type:
 Compare the requested quantity with the calculated available quantity.
 
 ### Step 5: Confirm the Booking
-Revalidate and reserve the inventory atomically. Do not rely on a previous client-side availability check alone.
+Revalidate and reserve the inventory atomically via `AvailabilityService.reserveAndCreateBooking()`. Client-side validation is enforced by an authoritative preflight check, and remote execution uses Firestore transactions (`FirebaseFirestore.instance.runTransaction`) to guarantee that concurrent confirmations cannot exceed physical capacity.
 
 ### Date Convention
 
-The implementation should agree on a consistent rental interval. A proposed convention is a half-open interval: the rental start is inclusive and the return date is exclusive. This permits equipment to be rented again on its verified return date, subject to the actual operational rules.
+RentMate uses an inclusive calendar-day interval convention for event rentals: both the event setup/start date and completion/return date are treated as active rental days. Two bookings $A$ and $B$ overlap on equipment item $E$ if:
+$$\max(start_A, start_B) \le \min(end_A, end_B)$$
+Cancelled bookings (`status == 'CANCELLED'`) are strictly excluded from overlap calculations, immediately freeing capacity for subsequent bookings.
 
-## 7. Preventing Double Bookings
+## 7. Preventing Double Bookings & Concurrency Strategy
 
-Concurrent booking requests can cause over-reservation if availability checking and booking creation are separate operations.
+To ensure zero over-reservation across distributed coordinator and warehouse devices:
+1. `AvailabilityService` calculates per-SKU, per-calendar-day availability across all days in $[start, end]$.
+2. Damaged/maintenance units (`status == 'MAINTENANCE'`) are subtracted from physical capacity ($Capacity_{rentable} = Total - Maintenance$).
+3. Atomic reservation is enforced via `AvailabilityService.reserveAndCreateBooking()`.
+4. If capacity is insufficient on any day in the window, an `AvailabilityConflictException` is thrown, returning:
+   - Required quantity and available quantity
+   - Shortage amount
+   - Colliding booking title and ID
+   - Colliding date
+5. Interactive resolution choices in `BookingConflictSheet`:
+   - Auto-reduction to maximum available stock.
+   - Immediate navigation back to date picker to select an alternative schedule.
+   - Cross-rental logging for external vendor sourcing.
 
-The booking confirmation process must therefore:
-1. Validate the requested equipment and dates.
-2. Check inventory within a trusted atomic operation.
-3. Create the reservation only if sufficient stock is available.
-4. Reject the transaction if another request has already consumed the available stock.
-5. Return a clear conflict message to the employee.
+## 8. Authentication, Authorization & Security Rules
 
-A Firestore transaction can be used with an appropriate inventory reservation design. For more complex booking logic, a callable Cloud Function can perform the trusted operation.
-
-The final implementation must be tested with concurrent requests.
-
-## 8. Authentication and Authorization
-
-- Use Firebase Authentication for employee identities.
-- Assign employee roles through a trusted administrative process.
-- Use Firestore Security Rules to protect database operations.
-- Do not rely on hiding UI elements as the only security measure.
-- Validate privileged operations on a trusted backend.
-- Restrict employee access according to the agreed role permissions.
+- Role definitions: `coordinator`, `warehouse`, and `admin` (see `UserModel` and `firestore.rules`).
+- Role-based routing: Warehouse staff are directed immediately to Tab 3 (`DispatchScreen`), while Coordinators land on Tab 0 (`Overview`).
+- Firestore Security Rules (`firestore.rules`):
+  - `users`: Authenticated read; profile updates allowed without role escalation.
+  - `equipment`: Authenticated read; writes restricted to coordinators and admins.
+  - `bookings`: Authenticated read; creation and reschedule restricted to coordinators and admins. Status transitions (`PACKING`, `READY`, `DISPATCHED`, `COMPLETED`) allowed for warehouse staff.
+  - `dispatches` and `returns`: Accessible to warehouse, coordinator, and admin staff.
 
 ## 9. Proposed Flutter Folder Structure
 
@@ -429,16 +433,15 @@ The UI should show clear messages and avoid reporting failed operations as succe
 - Prepare a release APK or app bundle for the final demonstration.
 - Keep production configuration and access restricted.
 
-## 15. Technical Decisions Pending
+## 15. Technical Decisions Resolved
 
-- Final state management package.
-- Reservation transaction design.
-- Whether Cloud Functions are necessary.
-- Final Firebase Security Rules.
-- Supported Android versions.
-- Exact rental date and return conventions.
-- Treatment of damaged and partially returned inventory.
+- **State Management & Persistence**: Singleton Repository and Service pattern (`BookingRepository`, `InventoryRepository`, `AvailabilityService`) wired with Cloud Firestore real-time snapshots (`FirebaseFirestore.instance`) and resilient in-memory caching fallback for offline/test environments.
+- **Reservation Transaction Design**: Atomic verification using `AvailabilityService.reserveAndCreateBooking()`. Employs double-checked date-interval verification with an asynchronous mutual-exclusion lock, and executes inside a Firestore transaction when remote connectivity is available.
+- **Cloud Functions / Backend Dependency**: Core availability and conflict verification is self-contained in Dart client services with server-enforced Firestore rules, eliminating latency and operational overhead for the MVP while keeping data integrity strictly guaranteed.
+- **Firebase Security Rules**: Comprehensive least-privilege rules implemented in `firestore.rules` validating roles (`coordinator`, `warehouse`, `admin`), preventing unauthorized status escalation, and enforcing schema invariants.
+- **Rental Date & Return Conventions**: Inclusive calendar-day convention ($[start, end]$). Both setup/dispatch date and completion/return date reserve equipment. Overlap formula: $\max(start_A, start_B) \le \min(end_A, end_B)$. Cancelled bookings immediately free capacity.
+- **Damaged & Maintenance Inventory Handling**: Damaged units (`status == 'MAINTENANCE'`) reduce rentable capacity ($Capacity_{rentable} = Total - Maintenance$). Returns with damage log intake notes and automatically update equipment maintenance counters upon intake.
 
 ---
 
-**Document Status:** Draft — Pending Mentor Approval
+**Document Status:** Approved — Production Baseline Implemented

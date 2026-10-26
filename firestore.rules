@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? getUserData().role
+        : 'coordinator';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    function isCoordinator() {
+      return isAuthenticated() && (getUserRole() == 'coordinator' || isAdmin());
+    }
+
+    function isWarehouse() {
+      return isAuthenticated() && (getUserRole() == 'warehouse' || isAdmin());
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      // Employees can read profiles
+      allow read: if isAuthenticated();
+
+      // Employees can create their initial profile, but regular users cannot alter their role
+      allow create: if isAuthenticated() && request.auth.uid == userId
+                    && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'coordinator' || isAdmin());
+
+      // Only admins can change roles; users can update their name/preferences
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // 2. Equipment Collection
+    match /equipment/{equipmentId} {
+      allow read: if isAuthenticated();
+
+      // Coordinators and admins can add/edit equipment; warehouse staff can update physical counts/status
+      allow create, delete: if isCoordinator();
+      allow update: if isCoordinator() || isWarehouse();
+    }
+
+    // 3. Bookings Collection
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+
+      // Only coordinators and admins can create/reschedule bookings
+      allow create: if isCoordinator() && request.resource.data.status == 'CONFIRMED';
+
+      // Coordinators can update details; warehouse crew can update status (PACKING, READY, DISPATCHED, COMPLETED)
+      allow update: if isCoordinator() || (isWarehouse() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']));
+
+      // Only coordinators and admins can cancel
+      allow delete: if isAdmin();
+    }
+
+    // 4. Dispatches Collection
+    match /dispatches/{dispatchId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isWarehouse() || isCoordinator();
+      allow delete: if isAdmin();
+    }
+
+    // 5. Returns Collection
+    match /returns/{returnId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isWarehouse() || isCoordinator();
+      allow delete: if isAdmin();
+    }
+  }
+}

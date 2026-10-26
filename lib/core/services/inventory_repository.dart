@@ -1,15 +1,55 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'auth_service.dart';
 
-/// Central in-memory equipment inventory repository for RentFlow.
+/// Central equipment inventory repository for RentFlow and RentMate operations.
 ///
-/// Manages live fleet metrics, deployment states, and returns reconciliation.
+/// Responsibilities:
+/// - Manages physical fleet assets, warehouse bays, deployment states, and returns reconciliation.
+/// - Synchronizes two-way with Cloud Firestore collection `equipment`.
+/// - Persists return audit logs to Cloud Firestore collection `returns`.
+/// - Supports offline/in-memory mode for standalone verification and unit tests.
 class InventoryRepository {
   static final InventoryRepository _instance = InventoryRepository._internal();
   factory InventoryRepository() => _instance;
 
+  StreamSubscription<QuerySnapshot>? _firestoreSubscription;
+
   InventoryRepository._internal() {
     itemsNotifier = ValueNotifier<List<Map<String, dynamic>>>(List.from(_initialItems));
+    _initFirestoreListener();
+  }
+
+  void _initFirestoreListener() {
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        _firestoreSubscription = FirebaseFirestore.instance
+            .collection('equipment')
+            .snapshots()
+            .listen(
+          (snapshot) {
+            if (snapshot.docs.isNotEmpty) {
+              final remoteItems = snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['id'] = doc.id;
+                data['total'] = (data['totalQuantity'] ?? data['total'] ?? 0) as int;
+                data['available'] = (data['rentableQuantity'] ?? data['available'] ?? 0) as int;
+                data['deployed'] = (data['deployed'] ?? 0) as int;
+                return data;
+              }).toList();
+              itemsNotifier.value = remoteItems;
+            }
+          },
+          onError: (e) {
+            debugPrint('Firestore equipment subscription notice: $e');
+          },
+        );
+      } catch (e) {
+        debugPrint('Could not initialize Firestore equipment listener: $e');
+      }
+    }
   }
 
   static final List<Map<String, dynamic>> _initialItems = [
@@ -59,34 +99,94 @@ class InventoryRepository {
       'progressRatio': 0.0,
     },
     {
-      'sku': 'CT-MQ500M',
-      'name': 'Chamsys MagicQ MQ500M Stadium Console',
+      'sku': 'SND-JBL-VRX932',
+      'name': 'JBL VRX932LA Line Array Speaker',
+      'category': 'Audio',
+      'flightCase': 'FC-A-04',
+      'rackBay': 'RIG-02-B',
+      'total': 16,
+      'available': 8,
+      'deployed': 8,
+      'status': 'DEPLOYED',
+      'statusColor': AppColors.burntCopper,
+      'statusBg': AppColors.copperSubtle,
+      'specs': '800W Peak • 12" Differential Drive • Constant Curvature',
+      'progressRatio': 0.50,
+    },
+    {
+      'sku': 'LGT-SHARPY-230',
+      'name': 'Sharpy 230W 7R Beam Moving Head',
+      'category': 'Lighting',
+      'flightCase': 'FC-L-11',
+      'rackBay': 'BAY-03-A',
+      'total': 24,
+      'available': 12,
+      'deployed': 12,
+      'status': 'DEPLOYED',
+      'statusColor': AppColors.burntCopper,
+      'statusBg': AppColors.copperSubtle,
+      'specs': 'Philips 7R Platinum • 14 Colors • 17 Gobos',
+      'progressRatio': 0.50,
+    },
+    {
+      'sku': 'VIS-LED-P391',
+      'name': 'P3.91 High-Res LED Video Wall Panel',
+      'category': 'Video & LED',
+      'flightCase': 'FC-V-02',
+      'rackBay': 'BAY-05-A',
+      'total': 40,
+      'available': 20,
+      'deployed': 20,
+      'status': 'DEPLOYED',
+      'statusColor': AppColors.burntCopper,
+      'statusBg': AppColors.copperSubtle,
+      'specs': '500x500mm • 3840Hz Refresh • Die-cast Aluminum',
+      'progressRatio': 0.50,
+    },
+    {
+      'sku': 'STG-TRS-3M',
+      'name': 'Heavy Duty Aluminum Box Truss (3m)',
+      'category': 'Rigging & Staging',
+      'flightCase': 'TRS-BND-01',
+      'rackBay': 'YARD-BAY-4',
+      'total': 30,
+      'available': 14,
+      'deployed': 16,
+      'status': 'DEPLOYED',
+      'statusColor': AppColors.burntCopper,
+      'statusBg': AppColors.copperSubtle,
+      'specs': '290mm Square • EN-AW 6082-T6 • Conical Couplers',
+      'progressRatio': 0.53,
+    },
+    {
+      'sku': 'SND-SHURE-ULXD',
+      'name': 'Shure ULXD4 Wireless Dual Mic Set',
+      'category': 'Audio',
+      'flightCase': 'FC-MIC-01',
+      'rackBay': 'BENCH-01',
+      'total': 10,
+      'available': 5,
+      'deployed': 5,
+      'status': 'DEPLOYED',
+      'statusColor': AppColors.burntCopper,
+      'statusBg': AppColors.copperSubtle,
+      'specs': 'Digital 24-bit/48kHz • Dante Networked • AES-256',
+      'progressRatio': 0.50,
+    },
+    {
+      'sku': 'PWR-GEN-62KVA',
+      'name': '62.5 kVA Silent Diesel Generator Unit',
       'category': 'Power & Control',
-      'flightCase': 'FC-C-01',
-      'rackBay': 'CTRL-ROOM-1',
-      'total': 2,
-      'available': 0,
+      'flightCase': 'GEN-TRK-01',
+      'rackBay': 'YARD-GEN-1',
+      'total': 4,
+      'available': 2,
       'deployed': 2,
       'status': 'DEPLOYED',
       'statusColor': AppColors.burntCopper,
       'statusBg': AppColors.copperSubtle,
-      'specs': '256 Universes • 4 Motorized Fader Banks • Dual Touch',
-      'progressRatio': 1.0,
-    },
-    {
-      'sku': 'TR-H30V-3M',
-      'name': 'Prolyte H30V Heavy Duty Truss 3M',
-      'category': 'Rigging & Staging',
-      'flightCase': 'TR-BDL-08',
-      'rackBay': 'YARD-DOCK-2',
-      'total': 32,
-      'available': 18,
-      'deployed': 14,
-      'status': 'IN WAREHOUSE',
-      'statusColor': AppColors.success,
-      'statusBg': AppColors.successSubtle,
-      'specs': '4-Point Box Truss • CCS6 Conical Coupler • 6082T6 Alloy',
-      'progressRatio': 0.44,
+      'specs': 'Cummins Engine • 415V 3-Phase • Acoustic Canopy <65dB',
+      'progressRatio': 0.50,
     },
     {
       'sku': 'AU-PWR-X8',
@@ -110,29 +210,31 @@ class InventoryRepository {
   List<Map<String, dynamic>> get items => itemsNotifier.value;
 
   int get totalAssetsCount =>
-      items.fold(0, (sum, item) => sum + (item['total'] as int));
+      items.fold(0, (total, item) => total + (item['total'] as int));
 
   int get onStageCount =>
-      items.fold(0, (sum, item) => sum + (item['deployed'] as int));
+      items.fold(0, (total, item) => total + (item['deployed'] as int));
 
   int get inWarehouseCount =>
-      items.fold(0, (sum, item) => sum + (item['available'] as int));
+      items.fold(0, (total, item) => total + (item['available'] as int));
 
-  int get maintenanceCount => items.fold(0, (sum, item) {
-        final total = item['total'] as int;
+  int get maintenanceCount => items.fold(0, (total, item) {
+        final totalQty = item['total'] as int;
         final available = item['available'] as int;
         final deployed = item['deployed'] as int;
-        final maint = total - (available + deployed);
-        return sum + (maint > 0 ? maint : (item['status'] == 'MAINTENANCE' ? 1 : 0));
+        final maint = totalQty - (available + deployed);
+        return total + (maint > 0 ? maint : (item['status'] == 'MAINTENANCE' ? 1 : 0));
       });
 
   /// Reconciles returns by SKU, adjusting available stock, maintenance, and deployed counts.
-  void reconcileReturn({
+  /// Also logs a return transaction to Cloud Firestore when connected.
+  Future<void> reconcileReturn({
     required String sku,
     required int goodQty,
     required int damagedQty,
     required int missingQty,
-  }) {
+    String? bookingId,
+  }) async {
     final current = List<Map<String, dynamic>>.from(itemsNotifier.value);
     final index = current.indexWhere(
       (element) => element['sku'].toString().toUpperCase() == sku.toUpperCase(),
@@ -167,12 +269,50 @@ class InventoryRepository {
 
       current[index] = item;
       itemsNotifier.value = current;
+
+      if (AuthService().isFirebaseInitialized) {
+        try {
+          final firestore = FirebaseFirestore.instance;
+          // Update equipment in Firestore
+          await firestore.collection('equipment').doc(sku).set({
+            'rentableQuantity': newAvailable,
+            'deployed': newDeployed,
+            'status': item['status'],
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+          // Log return record
+          await firestore.collection('returns').add({
+            'sku': sku,
+            'bookingId': bookingId ?? 'UNSPECIFIED',
+            'goodQuantity': goodQty,
+            'damagedQuantity': damagedQty,
+            'missingQuantity': missingQty,
+            'returnedAt': FieldValue.serverTimestamp(),
+            'recordedBy': AuthService().currentUser?.email ?? 'operations_lead',
+          });
+        } catch (e) {
+          debugPrint('Firestore return reconciliation notice: $e');
+        }
+      }
     }
   }
 
   /// Adds a new equipment item into the warehouse registry.
   void addEquipment(Map<String, dynamic> item) {
     itemsNotifier.value = [item, ...itemsNotifier.value];
+
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        final sku = (item['sku'] ?? DateTime.now().millisecondsSinceEpoch).toString();
+        FirebaseFirestore.instance
+            .collection('equipment')
+            .doc(sku)
+            .set(item, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore addEquipment notice: $e');
+      }
+    }
   }
 
   /// Finds an equipment item by SKU or Barcode.
@@ -180,11 +320,16 @@ class InventoryRepository {
     final clean = sku.trim().toUpperCase();
     try {
       return items.firstWhere(
-        (i) => i['sku'].toString().toUpperCase() == clean ||
-               i['flightCase'].toString().toUpperCase() == clean,
+        (i) =>
+            i['sku'].toString().toUpperCase() == clean ||
+            i['flightCase'].toString().toUpperCase() == clean,
       );
     } catch (_) {
       return null;
     }
+  }
+
+  void dispose() {
+    _firestoreSubscription?.cancel();
   }
 }

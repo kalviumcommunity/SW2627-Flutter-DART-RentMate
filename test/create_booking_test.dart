@@ -80,7 +80,7 @@ void main() {
     expect(find.text('Select Equipment Catalog'), findsOneWidget);
 
     // Since 0 items are selected by default, button is disabled with prompt label
-    expect(find.text('Select Equipment to Continue'), findsOneWidget);
+    expect(find.text('Select Equipment to Proceed'), findsOneWidget);
 
     // Add 1 JBL Line Array speaker by tapping first '+' icon
     final addIcons = find.byIcon(Icons.add);

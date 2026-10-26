@@ -57,6 +57,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  String get _currentFormattedDate {
+    final now = DateTime.now();
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final weekday = days[now.weekday - 1];
+    final month = months[now.month - 1];
+    return '$weekday, ${now.day} $month';
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -173,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Operations Cockpit • Squad 124 • Mon, 30 Sep',
+                    'Operations Cockpit • Squad 124 • $_currentFormattedDate',
                     style: AppTextStyles.monoLabel.copyWith(
                       color: AppColors.slate,
                       fontSize: 11,

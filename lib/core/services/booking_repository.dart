@@ -1,16 +1,54 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/booking_item.dart';
+import 'auth_service.dart';
 
-/// Centralized in-memory booking repository for RentFlow session state.
+/// Centralized booking repository for RentFlow / RentMate operations.
+///
+/// Features:
+/// - Reactive state management via [bookingsNotifier] for immediate UI reactivity.
+/// - Live two-way synchronization with Cloud Firestore collection `bookings`.
+/// - Offline/in-memory fallback ensuring zero crashes in test suites and local setups.
+/// - Robust cancellation, status transitions, and booking query methods.
 class BookingRepository {
   static final BookingRepository _instance = BookingRepository._internal();
   factory BookingRepository() => _instance;
 
+  StreamSubscription<QuerySnapshot>? _firestoreSubscription;
+
   BookingRepository._internal() {
-    bookingsNotifier = ValueNotifier<List<BookingItem>>(List.unmodifiable(_initialBookings));
+    bookingsNotifier = ValueNotifier<List<BookingItem>>(List.from(_initialBookings));
+    _initFirestoreListener();
   }
 
-  static const List<BookingItem> _initialBookings = [
+  void _initFirestoreListener() {
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        _firestoreSubscription = FirebaseFirestore.instance
+            .collection('bookings')
+            .orderBy('createdAt', descending: true)
+            .snapshots()
+            .listen(
+          (snapshot) {
+            if (snapshot.docs.isNotEmpty) {
+              final remoteBookings = snapshot.docs
+                  .map((doc) => BookingItem.fromFirestore(doc))
+                  .toList();
+              bookingsNotifier.value = remoteBookings;
+            }
+          },
+          onError: (e) {
+            debugPrint('Firestore bookings subscription notice: $e');
+          },
+        );
+      } catch (e) {
+        debugPrint('Could not initialize Firestore bookings listener: $e');
+      }
+    }
+  }
+
+  static final List<BookingItem> _initialBookings = [
     BookingItem(
       id: 'BK-8942',
       eventTitle: 'Sharma Royal Wedding & Sangeet',
@@ -21,6 +59,15 @@ class BookingRepository {
       status: 'READY',
       unitsCount: 24,
       totalAmount: 48500.0,
+      startDate: DateTime.now(),
+      endDate: DateTime.now().add(const Duration(days: 1)),
+      items: [
+        {'sku': 'SND-JBL-VRX932', 'name': 'JBL VRX932LA Line Array Speaker', 'quantity': 4, 'dailyRate': 1500.0},
+        {'sku': 'LGT-SHARPY-230', 'name': 'Sharpy 230W 7R Beam Moving Head', 'quantity': 6, 'dailyRate': 850.0},
+        {'sku': 'VIS-LED-P391', 'name': 'P3.91 High-Res LED Video Wall Panel', 'quantity': 8, 'dailyRate': 1200.0},
+        {'sku': 'STG-TRS-3M', 'name': 'Heavy Duty Aluminum Box Truss', 'quantity': 4, 'dailyRate': 600.0},
+        {'sku': 'SND-SHURE-ULXD', 'name': 'Shure ULXD4 Wireless Dual Mic Set', 'quantity': 2, 'dailyRate': 950.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8941',
@@ -32,6 +79,14 @@ class BookingRepository {
       status: 'PACKING',
       unitsCount: 42,
       totalAmount: 76000.0,
+      startDate: DateTime.now().add(const Duration(days: 1)),
+      endDate: DateTime.now().add(const Duration(days: 2)),
+      items: [
+        {'sku': 'AU-K2-LARR', 'name': 'L-Acoustics K2 Line Array Module', 'quantity': 4, 'dailyRate': 3000.0},
+        {'sku': 'LT-PNT-700', 'name': 'Robe Robin Pointe Moving Beam', 'quantity': 8, 'dailyRate': 1800.0},
+        {'sku': 'VD-PL25-LED', 'name': 'Absen PL2.5 Pro Outdoor LED Panel', 'quantity': 16, 'dailyRate': 1400.0},
+        {'sku': 'PWR-GEN-62KVA', 'name': '62.5 kVA Silent Diesel Generator Unit', 'quantity': 1, 'dailyRate': 4500.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8939',
@@ -43,6 +98,13 @@ class BookingRepository {
       status: 'CONFIRMED',
       unitsCount: 18,
       totalAmount: 34000.0,
+      startDate: DateTime.now().add(const Duration(days: 3)),
+      endDate: DateTime.now().add(const Duration(days: 4)),
+      items: [
+        {'sku': 'SND-JBL-VRX932', 'name': 'JBL VRX932LA Line Array Speaker', 'quantity': 4, 'dailyRate': 1500.0},
+        {'sku': 'AU-PWR-X8', 'name': 'Powersoft X8 Touring 8-Ch Amplifier', 'quantity': 2, 'dailyRate': 2500.0},
+        {'sku': 'LGT-SHARPY-230', 'name': 'Sharpy 230W 7R Beam Moving Head', 'quantity': 4, 'dailyRate': 850.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8935',
@@ -54,6 +116,12 @@ class BookingRepository {
       status: 'CONFIRMED',
       unitsCount: 30,
       totalAmount: 62000.0,
+      startDate: DateTime.now().add(const Duration(days: 5)),
+      endDate: DateTime.now().add(const Duration(days: 6)),
+      items: [
+        {'sku': 'LT-PNT-700', 'name': 'Robe Robin Pointe Moving Beam', 'quantity': 8, 'dailyRate': 1800.0},
+        {'sku': 'VIS-LED-P391', 'name': 'P3.91 High-Res LED Video Wall Panel', 'quantity': 12, 'dailyRate': 1200.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8930',
@@ -65,6 +133,12 @@ class BookingRepository {
       status: 'DISPATCHED',
       unitsCount: 28,
       totalAmount: 52000.0,
+      startDate: DateTime.now(),
+      endDate: DateTime.now().add(const Duration(days: 1)),
+      items: [
+        {'sku': 'SND-JBL-VRX932', 'name': 'JBL VRX932LA Line Array Speaker', 'quantity': 4, 'dailyRate': 1500.0},
+        {'sku': 'LGT-SHARPY-230', 'name': 'Sharpy 230W 7R Beam Moving Head', 'quantity': 8, 'dailyRate': 850.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8928',
@@ -76,6 +150,11 @@ class BookingRepository {
       status: 'AWAITING RETURN',
       unitsCount: 36,
       totalAmount: 68000.0,
+      startDate: DateTime.now().subtract(const Duration(days: 1)),
+      endDate: DateTime.now(),
+      items: [
+        {'sku': 'AU-K2-LARR', 'name': 'L-Acoustics K2 Line Array Module', 'quantity': 4, 'dailyRate': 3000.0},
+      ],
     ),
     BookingItem(
       id: 'BK-8920',
@@ -87,6 +166,9 @@ class BookingRepository {
       status: 'COMPLETED',
       unitsCount: 16,
       totalAmount: 29500.0,
+      startDate: DateTime.now().subtract(const Duration(days: 5)),
+      endDate: DateTime.now().subtract(const Duration(days: 4)),
+      items: [],
     ),
   ];
 
@@ -94,27 +176,82 @@ class BookingRepository {
 
   List<BookingItem> get bookings => bookingsNotifier.value;
 
-  void addBooking(BookingItem item) {
+  /// Adds a new booking to session state and persists to Firestore when connected.
+  Future<void> addBooking(BookingItem item) async {
     bookingsNotifier.value = [item, ...bookingsNotifier.value];
+
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(item.id)
+            .set(item.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore addBooking notice: $e');
+      }
+    }
   }
 
-  void updateBookingStatus(String id, String newStatus) {
+  /// Updates booking status (e.g. READY, DISPATCHED, COMPLETED, CANCELLED).
+  Future<void> updateBookingStatus(String id, String newStatus) async {
     final list = bookingsNotifier.value.map((b) {
       if (b.id == id) {
-        return BookingItem(
-          id: b.id,
-          eventTitle: b.eventTitle,
-          clientName: b.clientName,
-          category: b.category,
-          date: b.date,
-          venue: b.venue,
-          status: newStatus,
-          unitsCount: b.unitsCount,
-          totalAmount: b.totalAmount,
-        );
+        return b.copyWith(status: newStatus, updatedAt: DateTime.now());
       }
       return b;
     }).toList();
     bookingsNotifier.value = list;
+
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(id)
+            .update({
+          'status': newStatus.toUpperCase(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Firestore updateBookingStatus notice: $e');
+      }
+    }
+  }
+
+  /// Replaces an existing booking with updated metadata and syncs to Firestore.
+  Future<void> updateBooking(BookingItem item) async {
+    final list = bookingsNotifier.value.map((b) {
+      if (b.id == item.id) return item;
+      return b;
+    }).toList();
+    bookingsNotifier.value = list;
+
+    if (AuthService().isFirebaseInitialized) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(item.id)
+            .set(item.toMap(), SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore updateBooking notice: $e');
+      }
+    }
+  }
+
+  /// Cancels a booking, setting status to CANCELLED and freeing reserved stock.
+  Future<void> cancelBooking(String id) async {
+    await updateBookingStatus(id, 'CANCELLED');
+  }
+
+  /// Retrieves a booking by its identifier.
+  BookingItem? getBookingById(String id) {
+    try {
+      return bookings.firstWhere((b) => b.id.toUpperCase() == id.trim().toUpperCase());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void dispose() {
+    _firestoreSubscription?.cancel();
   }
 }

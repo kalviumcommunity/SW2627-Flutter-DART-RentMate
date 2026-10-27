@@ -101,7 +101,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bone,
       body: _currentNavIndex == 1
-          ? const BookingsListScreen()
+          ? BookingsListScreen(
+              isEmbedded: true,
+              onBackToOverview: () {
+                setState(() => _currentNavIndex = 0);
+              },
+            )
           : _currentNavIndex == 2
               ? InventoryScreen(
                   isEmbedded: true,

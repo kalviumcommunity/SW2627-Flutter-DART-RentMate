@@ -3,6 +3,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/inventory_repository.dart';
+import '../../core/services/seed_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/rentflow_button.dart';
@@ -41,6 +42,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentNavIndex = 0;
   bool _hasEvaluatedInitialRole = false;
+  bool _isSeeding = false;
   late String _activeRole;
 
   @override
@@ -1081,7 +1083,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildConfigOption(Icons.handyman_outlined, 'Maintenance & Bench Checks', 'Equipment inspection schedules, test reports, and repairs'),
             _buildConfigOption(Icons.badge_outlined, 'Staff Access & Crew Roles', 'Permissions for Coordinators, Dispatchers, and Leads'),
             _buildConfigOption(Icons.cloud_sync_outlined, 'Cloud Sync & Offline Manifests', 'Synchronize field manifests with central operations DB'),
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.burntCopper.withAlpha(128)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.copperSubtle,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.dataset_linked_outlined, color: AppColors.burntCopper, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Seed Operations Dataset',
+                              style: AppTextStyles.brandTitle.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Populate Cloud Firestore and local fleet with 10 equipment assets, 7 bookings, and allocation ledgers.',
+                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.slate),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  RentFlowButton(
+                    label: _isSeeding ? 'Seeding Operations Fleet...' : 'Seed Database & Fleet',
+                    icon: Icons.cloud_upload_outlined,
+                    backgroundColor: AppColors.burntCopper,
+                    textColor: AppColors.paper,
+                    onPressed: _isSeeding
+                        ? null
+                        : () async {
+                            setState(() => _isSeeding = true);
+                            final result = await SeedService().seedDatabase(force: true);
+                            if (mounted) {
+                              setState(() => _isSeeding = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result.message),
+                                  backgroundColor: result.firestoreSeeded || result.localSeeded
+                                      ? AppColors.success
+                                      : AppColors.danger,
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
             RentFlowButton(
               label: 'Sign Out of Session',
               icon: Icons.logout_rounded,

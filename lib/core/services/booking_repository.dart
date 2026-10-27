@@ -25,13 +25,21 @@ class BookingRepository {
 
   StreamSubscription<QuerySnapshot>? _firestoreSubscription;
 
+  static List<BookingItem> get initialBookings =>
+      List.unmodifiable(_initialBookings);
+
   BookingRepository._internal() {
-    final useInitial = !AuthService().isFirebaseInitialized || isDemoMode;
     bookingsNotifier = ValueNotifier<List<BookingItem>>(
-      useInitial ? List.from(_initialBookings) : const [],
+      List.from(_initialBookings),
     );
     isLoading = AuthService().isFirebaseInitialized && !isDemoMode;
     _initFirestoreListener();
+  }
+
+  void resetToInitial() {
+    bookingsNotifier.value = List.from(_initialBookings);
+    isLoading = false;
+    errorMessage = null;
   }
 
   void _initFirestoreListener() {
@@ -53,7 +61,11 @@ class BookingRepository {
               }
             }).toList();
 
-            bookingsNotifier.value = remoteBookings;
+            if (remoteBookings.isNotEmpty) {
+              bookingsNotifier.value = remoteBookings;
+            } else if (bookingsNotifier.value.isEmpty) {
+              bookingsNotifier.value = List.from(_initialBookings);
+            }
             hasReceivedRemoteSnapshot = true;
             isLoading = false;
             errorMessage = null;
@@ -61,6 +73,9 @@ class BookingRepository {
           onError: (e) {
             isLoading = false;
             errorMessage = e.toString();
+            if (bookingsNotifier.value.isEmpty) {
+              bookingsNotifier.value = List.from(_initialBookings);
+            }
             debugPrint('Firestore bookings subscription notice: $e');
           },
         );

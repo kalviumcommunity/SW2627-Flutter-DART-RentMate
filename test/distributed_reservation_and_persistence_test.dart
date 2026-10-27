@@ -4,6 +4,7 @@ import 'package:rentflow/core/services/auth_service.dart';
 import 'package:rentflow/core/services/availability_service.dart';
 import 'package:rentflow/core/services/booking_repository.dart';
 import 'package:rentflow/core/services/inventory_repository.dart';
+import 'package:rentflow/core/services/seed_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -290,6 +291,19 @@ void main() {
       expect(AuthService.normalizeRole('COORDINATOR'), 'coordinator');
       expect(AuthService.normalizeRole('warehouse'), 'warehouse');
       expect(AuthService.normalizeRole('admin'), 'admin');
+    });
+  });
+
+  group('SeedService Operation & State Population Tests', () {
+    test('SeedService seeds local memory repositories and allocation ledgers reliably', () async {
+      final seedService = SeedService();
+      final result = await seedService.seedDatabase();
+
+      expect(result.localSeeded, isTrue);
+      expect(result.equipmentCount, greaterThanOrEqualTo(10));
+      expect(result.bookingsCount, greaterThanOrEqualTo(3));
+      expect(InventoryRepository().items.length, greaterThanOrEqualTo(10));
+      expect(BookingRepository().bookings.length, greaterThanOrEqualTo(3));
     });
   });
 }

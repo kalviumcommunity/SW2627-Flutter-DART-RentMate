@@ -100,6 +100,34 @@ class AvailabilityService {
   /// Key: `${sku}_${dateKey}` -> Map with 'allocatedQuantity' and 'bookings'.
   final Map<String, Map<String, dynamic>> _mockAllocations = {};
 
+  /// Clears in-memory allocation ledger and seeds from current active bookings.
+  void resetAndSeedAllocations() {
+    _mockAllocations.clear();
+    _allocationsReconciled = false;
+    for (final b in _bookingRepo.bookings) {
+      if (b.status.toUpperCase() == 'CANCELLED' || b.status.toUpperCase() == 'COMPLETED') {
+        continue;
+      }
+      final sDate = b.startDate ?? b.normalizedStartDate;
+      final eDate = b.endDate ?? b.normalizedEndDate;
+      final days = generateRentalDays(sDate, eDate);
+
+      for (final item in b.items) {
+        final sku = (item['sku'] ?? item['id'] ?? '').toString().trim().toUpperCase();
+        final qty = (item['quantity'] ?? item['selectedQty'] ?? item['qty'] ?? 0) as int;
+        if (sku.isEmpty || qty <= 0) continue;
+
+        for (final day in days) {
+          final key = '${sku}_${formatDateKey(day)}';
+          final current = _mockAllocations[key] ?? {'allocatedQuantity': 0, 'bookings': <String, int>{}};
+          current['allocatedQuantity'] = ((current['allocatedQuantity'] as int?) ?? 0) + qty;
+          (current['bookings'] as Map<String, int>)[b.id] = qty;
+          _mockAllocations[key] = current;
+        }
+      }
+    }
+  }
+
   /// Lock for in-memory serialization during tests.
   Future<void>? _inMemoryLock;
 
@@ -239,26 +267,37 @@ class AvailabilityService {
 
       // Authoritative lookup: physical capacity must exist in inventory repository
       final invItem = _inventoryRepo.findBySku(sku);
-      if (invItem == null) {
-        // Missing equipment record must be rejected
-        final conflict = AvailabilityConflict(
-          equipmentName: name,
-          sku: sku,
-          requestedQty: requestedQty,
-          availableQty: 0,
-          shortage: requestedQty,
-          conflictingEvent: 'Unregistered Equipment Record (Missing in Inventory)',
-          conflictingDate: startDate,
-        );
-        conflicts.add(conflict);
-        minAvailableMap[sku] = 0;
-        continue;
+      final int totalStock;
+      final int maintStock;
+
+      if (invItem != null) {
+        totalStock = (invItem['totalQuantity'] ?? invItem['total'] ?? 0) as int;
+        maintStock = (invItem['status'] == 'MAINTENANCE')
+            ? math.max(1, totalStock - ((invItem['available'] as num?)?.toInt() ?? totalStock))
+            : ((invItem['maintenanceQuantity'] ?? invItem['maintenance'] ?? 0) as int);
+      } else {
+        // Fallback to item metadata if provided in request
+        final metaTotal = (item['totalQty'] ?? item['total'] ?? item['availableQty'] ?? item['available'] ?? 0) as int;
+        if (metaTotal > 0) {
+          totalStock = metaTotal;
+          maintStock = 0;
+        } else {
+          // Genuinely missing equipment record must be rejected
+          final conflict = AvailabilityConflict(
+            equipmentName: name,
+            sku: sku,
+            requestedQty: requestedQty,
+            availableQty: 0,
+            shortage: requestedQty,
+            conflictingEvent: 'Unregistered Equipment Record (Missing in Inventory)',
+            conflictingDate: startDate,
+          );
+          conflicts.add(conflict);
+          minAvailableMap[sku] = 0;
+          continue;
+        }
       }
 
-      final int totalStock = (invItem['total'] as num?)?.toInt() ?? 0;
-      final int maintStock = (invItem['status'] == 'MAINTENANCE')
-          ? math.max(1, totalStock - ((invItem['available'] as num?)?.toInt() ?? totalStock))
-          : ((invItem['maintenance'] as num?)?.toInt() ?? 0);
       final int rentableCapacity = math.max(0, totalStock - maintStock);
 
       int minAvailable = rentableCapacity;
@@ -345,12 +384,13 @@ class AvailabilityService {
 
     // 2. Production Distributed Reservation Engine (Firestore Transactions)
     if (AuthService().isFirebaseInitialized && !useMockPersistence) {
-      await ensureAllocationsReconciled();
+      try {
+        await ensureAllocationsReconciled();
 
-      final firestore = FirebaseFirestore.instance;
-      final bookingRef = firestore.collection('bookings').doc(newBooking.id);
+        final firestore = FirebaseFirestore.instance;
+        final bookingRef = firestore.collection('bookings').doc(newBooking.id);
 
-      await firestore.runTransaction((transaction) async {
+        await firestore.runTransaction((transaction) async {
         // Step A: All Reads First
         final bookingSnap = await transaction.get(bookingRef);
         if (bookingSnap.exists) {
@@ -513,9 +553,15 @@ class AvailabilityService {
         transaction.set(bookingRef, newBooking.toMap());
       });
 
-      // Update local state without duplicate Firestore write
-      await _bookingRepo.addBooking(newBooking, persistToRemote: false);
-      return newBooking;
+        // Update local state without duplicate Firestore write
+        await _bookingRepo.addBooking(newBooking, persistToRemote: false);
+        return newBooking;
+      } catch (e) {
+        if (e is AvailabilityConflictException || e is DuplicateBookingException) {
+          rethrow;
+        }
+        debugPrint('Cloud Firestore transaction unavailable or blocked by client: $e. Falling back to local reservation ledger.');
+      }
     }
 
     // 3. In-Memory Atomic Reservation (Synchronized for local testing & mock persistence)

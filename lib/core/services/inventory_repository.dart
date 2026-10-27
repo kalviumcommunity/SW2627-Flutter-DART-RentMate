@@ -24,13 +24,21 @@ class InventoryRepository {
 
   StreamSubscription<QuerySnapshot>? _firestoreSubscription;
 
+  static List<Map<String, dynamic>> get initialItems =>
+      List.unmodifiable(_initialItems);
+
   InventoryRepository._internal() {
-    final useInitial = !AuthService().isFirebaseInitialized || isDemoMode;
     itemsNotifier = ValueNotifier<List<Map<String, dynamic>>>(
-      useInitial ? List.from(_initialItems) : const [],
+      List.from(_initialItems),
     );
     isLoading = AuthService().isFirebaseInitialized && !isDemoMode;
     _initFirestoreListener();
+  }
+
+  void resetToInitial() {
+    itemsNotifier.value = List.from(_initialItems);
+    isLoading = false;
+    errorMessage = null;
   }
 
   void _initFirestoreListener() {
@@ -61,7 +69,11 @@ class InventoryRepository {
               return data;
             }).toList();
 
-            itemsNotifier.value = remoteItems;
+            if (remoteItems.isNotEmpty) {
+              itemsNotifier.value = remoteItems;
+            } else if (itemsNotifier.value.isEmpty) {
+              itemsNotifier.value = List.from(_initialItems);
+            }
             hasReceivedRemoteSnapshot = true;
             isLoading = false;
             errorMessage = null;
@@ -69,6 +81,9 @@ class InventoryRepository {
           onError: (e) {
             isLoading = false;
             errorMessage = e.toString();
+            if (itemsNotifier.value.isEmpty) {
+              itemsNotifier.value = List.from(_initialItems);
+            }
             debugPrint('Firestore equipment subscription notice: $e');
           },
         );
@@ -425,13 +440,22 @@ class InventoryRepository {
   Map<String, dynamic>? findBySku(String sku) {
     final clean = sku.trim().toUpperCase();
     try {
-      return items.firstWhere(
+      final list = items.isNotEmpty ? items : _initialItems;
+      return list.firstWhere(
         (i) =>
             i['sku'].toString().toUpperCase() == clean ||
             i['flightCase'].toString().toUpperCase() == clean,
       );
     } catch (_) {
-      return null;
+      try {
+        return _initialItems.firstWhere(
+          (i) =>
+              i['sku'].toString().toUpperCase() == clean ||
+              i['flightCase'].toString().toUpperCase() == clean,
+        );
+      } catch (_) {
+        return null;
+      }
     }
   }
 

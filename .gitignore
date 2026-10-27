@@ -50,3 +50,8 @@ app.*.map.json
 # Local-only study and learning notes (keep local, do not commit to PR)
 docs/learning/
 scratch_server*.js
+
+# Platform generated plugin registrants
+**/GeneratedPluginRegistrant.swift
+**/generated_plugin_registrant.cc
+**/generated_plugins.cmake

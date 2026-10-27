@@ -225,18 +225,26 @@ class AuthService {
   /// Writes the user's role to Firestore and updates local cache.
   Future<void> setUserRole(String uid, String role) async {
     final normalized = normalizeRole(role);
+    final targetUid = currentFirebaseUser?.uid ?? uid;
+    _roleMemoryCache[targetUid.toLowerCase().trim()] = normalized;
     _roleMemoryCache[uid.toLowerCase().trim()] = normalized;
+
     if (isFirebaseInitialized) {
       try {
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        await FirebaseFirestore.instance.collection('users').doc(targetUid).set({
           'role': normalized,
+          'email': currentUser?.email ?? uid,
+          'displayName': currentUser?.displayName ?? '',
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       } catch (e) {
         debugPrint('Firestore setUserRole error: $e');
       }
     }
-    await _cacheUserRole(uid, normalized);
+    await _cacheUserRole(targetUid, normalized);
+    if (targetUid != uid) {
+      await _cacheUserRole(uid, normalized);
+    }
   }
 
   Future<void> _cacheUserRole(String uid, String role) async {
@@ -278,6 +286,10 @@ class AuthService {
           return _currentUser;
         }
       } else {
+        if (defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows) {
+          throw UnsupportedError('Google Workspace sign-in on desktop requires browser redirect or web build.');
+        }
+
         // Native Android / iOS Google Sign-In
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
         if (googleUser == null) {

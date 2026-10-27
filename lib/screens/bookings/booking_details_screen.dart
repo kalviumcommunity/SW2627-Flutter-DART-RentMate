@@ -83,7 +83,25 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
   List<Map<String, dynamic>> _computeEffectiveManifestItems() {
     if (widget.manifestItems != null && widget.manifestItems!.isNotEmpty) {
-      return List.from(widget.manifestItems!);
+      return widget.manifestItems!.map((raw) {
+        final item = Map<String, dynamic>.from(raw);
+        final sku = (item['sku'] ?? item['id'] ?? 'EQ-ASSET').toString();
+        final name = (item['name'] ?? item['equipmentName'] ?? sku).toString();
+        final qty = (item['qty'] ?? item['quantity'] ?? item['selectedQty'] ?? 1) as num;
+        final rate = (item['rate'] ?? item['dailyRate'] ?? 1000.0) as num;
+        final cleanSku = sku.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+        final fcTag = cleanSku.length >= 4 ? cleanSku.substring(0, 4) : cleanSku.padRight(4, '0');
+        final flightCase = (item['flightCase'] ?? 'FC-$fcTag').toString();
+        final bay = (item['bay'] ?? item['rackBay'] ?? 'BAY-01-A').toString();
+        return {
+          'name': name,
+          'sku': sku,
+          'flightCase': flightCase,
+          'bay': bay,
+          'qty': qty.toInt(),
+          'rate': rate.toDouble(),
+        };
+      }).toList();
     }
     final cat = widget.category.toLowerCase();
     if (cat.contains('corporate') ||
@@ -365,10 +383,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double gearSubtotal = _effectiveItems.fold(
+    final double rawGearSubtotal = _effectiveItems.fold(
       0.0,
-      (sum, item) => sum + ((item['qty'] as num) * (item['rate'] as num)),
+      (sum, item) => sum + (((item['qty'] as num?) ?? 1) * ((item['rate'] as num?) ?? 0)),
     );
+    final double gearSubtotal = (widget.grandTotal > 0 && rawGearSubtotal > widget.grandTotal)
+        ? widget.grandTotal
+        : rawGearSubtotal;
     final double logisticsAndCrew =
         (widget.grandTotal > gearSubtotal) ? (widget.grandTotal - gearSubtotal) : 0.0;
 

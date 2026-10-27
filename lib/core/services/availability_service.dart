@@ -250,7 +250,8 @@ class AvailabilityService {
     final normEnd = normalizeDate(endDate);
 
     final activeBookings = _bookingRepo.bookings.where((b) {
-      if (b.status.toUpperCase() == 'CANCELLED') return false;
+      final upper = b.status.toUpperCase();
+      if (upper == 'CANCELLED' || upper == 'COMPLETED') return false;
       if (excludeBookingId != null && b.id == excludeBookingId) return false;
       return b.overlapsWith(normStart, normEnd);
     }).toList();
@@ -435,27 +436,33 @@ class AvailabilityService {
           if (sku.isEmpty || requestedQty <= 0) continue;
 
           final eqSnap = eqSnaps[sku];
-          if (eqSnap == null || !eqSnap.exists) {
-            throw AvailabilityConflictException(
-              AvailabilityCheckResult(
-                isAvailable: false,
-                conflicts: [
-                  AvailabilityConflict(
-                    equipmentName: name,
-                    sku: sku,
-                    requestedQty: requestedQty,
-                    availableQty: 0,
-                    shortage: requestedQty,
-                    conflictingEvent: 'Unregistered Equipment Record in Firestore',
-                    conflictingDate: sDate,
-                  )
-                ],
-              ),
-              'Equipment record for SKU $sku does not exist in inventory registry.',
-            );
+          final Map<String, dynamic> eqData;
+          if (eqSnap != null && eqSnap.exists) {
+            eqData = eqSnap.data() as Map<String, dynamic>? ?? {};
+          } else {
+            final localItem = _inventoryRepo.findBySku(sku);
+            if (localItem != null) {
+              eqData = localItem;
+            } else {
+              throw AvailabilityConflictException(
+                AvailabilityCheckResult(
+                  isAvailable: false,
+                  conflicts: [
+                    AvailabilityConflict(
+                      equipmentName: name,
+                      sku: sku,
+                      requestedQty: requestedQty,
+                      availableQty: 0,
+                      shortage: requestedQty,
+                      conflictingEvent: 'Unregistered Equipment Record in Inventory Registry',
+                      conflictingDate: sDate,
+                    )
+                  ],
+                ),
+                'Equipment record for SKU $sku does not exist in inventory registry.',
+              );
+            }
           }
-
-          final eqData = eqSnap.data() as Map<String, dynamic>? ?? {};
           final totalStock = (eqData['totalQuantity'] ?? eqData['total'] ?? 0) as int;
           final maintStock = (eqData['status'] == 'MAINTENANCE')
               ? math.max(1, totalStock - ((eqData['rentableQuantity'] ?? eqData['available'] ?? totalStock) as int))

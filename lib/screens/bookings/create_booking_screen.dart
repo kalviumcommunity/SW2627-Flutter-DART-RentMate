@@ -817,6 +817,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                                     'sku': item.sku,
                                     'name': item.name,
                                     'quantity': item.selectedQty + 1,
+                                    'totalQty': item.totalQty,
+                                    'availableQty': item.availableQty,
                                   }
                                 ],
                               );

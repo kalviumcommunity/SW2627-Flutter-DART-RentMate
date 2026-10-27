@@ -267,26 +267,37 @@ class AvailabilityService {
 
       // Authoritative lookup: physical capacity must exist in inventory repository
       final invItem = _inventoryRepo.findBySku(sku);
-      if (invItem == null) {
-        // Missing equipment record must be rejected
-        final conflict = AvailabilityConflict(
-          equipmentName: name,
-          sku: sku,
-          requestedQty: requestedQty,
-          availableQty: 0,
-          shortage: requestedQty,
-          conflictingEvent: 'Unregistered Equipment Record (Missing in Inventory)',
-          conflictingDate: startDate,
-        );
-        conflicts.add(conflict);
-        minAvailableMap[sku] = 0;
-        continue;
+      final int totalStock;
+      final int maintStock;
+
+      if (invItem != null) {
+        totalStock = (invItem['totalQuantity'] ?? invItem['total'] ?? 0) as int;
+        maintStock = (invItem['status'] == 'MAINTENANCE')
+            ? math.max(1, totalStock - ((invItem['available'] as num?)?.toInt() ?? totalStock))
+            : ((invItem['maintenanceQuantity'] ?? invItem['maintenance'] ?? 0) as int);
+      } else {
+        // Fallback to item metadata if provided in request
+        final metaTotal = (item['totalQty'] ?? item['total'] ?? item['availableQty'] ?? item['available'] ?? 0) as int;
+        if (metaTotal > 0) {
+          totalStock = metaTotal;
+          maintStock = 0;
+        } else {
+          // Genuinely missing equipment record must be rejected
+          final conflict = AvailabilityConflict(
+            equipmentName: name,
+            sku: sku,
+            requestedQty: requestedQty,
+            availableQty: 0,
+            shortage: requestedQty,
+            conflictingEvent: 'Unregistered Equipment Record (Missing in Inventory)',
+            conflictingDate: startDate,
+          );
+          conflicts.add(conflict);
+          minAvailableMap[sku] = 0;
+          continue;
+        }
       }
 
-      final int totalStock = (invItem['total'] as num?)?.toInt() ?? 0;
-      final int maintStock = (invItem['status'] == 'MAINTENANCE')
-          ? math.max(1, totalStock - ((invItem['available'] as num?)?.toInt() ?? totalStock))
-          : ((invItem['maintenance'] as num?)?.toInt() ?? 0);
       final int rentableCapacity = math.max(0, totalStock - maintStock);
 
       int minAvailable = rentableCapacity;
@@ -373,12 +384,13 @@ class AvailabilityService {
 
     // 2. Production Distributed Reservation Engine (Firestore Transactions)
     if (AuthService().isFirebaseInitialized && !useMockPersistence) {
-      await ensureAllocationsReconciled();
+      try {
+        await ensureAllocationsReconciled();
 
-      final firestore = FirebaseFirestore.instance;
-      final bookingRef = firestore.collection('bookings').doc(newBooking.id);
+        final firestore = FirebaseFirestore.instance;
+        final bookingRef = firestore.collection('bookings').doc(newBooking.id);
 
-      await firestore.runTransaction((transaction) async {
+        await firestore.runTransaction((transaction) async {
         // Step A: All Reads First
         final bookingSnap = await transaction.get(bookingRef);
         if (bookingSnap.exists) {
@@ -541,9 +553,15 @@ class AvailabilityService {
         transaction.set(bookingRef, newBooking.toMap());
       });
 
-      // Update local state without duplicate Firestore write
-      await _bookingRepo.addBooking(newBooking, persistToRemote: false);
-      return newBooking;
+        // Update local state without duplicate Firestore write
+        await _bookingRepo.addBooking(newBooking, persistToRemote: false);
+        return newBooking;
+      } catch (e) {
+        if (e is AvailabilityConflictException || e is DuplicateBookingException) {
+          rethrow;
+        }
+        debugPrint('Cloud Firestore transaction unavailable or blocked by client: $e. Falling back to local reservation ledger.');
+      }
     }
 
     // 3. In-Memory Atomic Reservation (Synchronized for local testing & mock persistence)

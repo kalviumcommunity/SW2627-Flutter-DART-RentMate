@@ -41,15 +41,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentNavIndex = 0;
   bool _hasEvaluatedInitialRole = false;
+  late String _activeRole;
 
   @override
   void initState() {
     super.initState();
+    _activeRole = widget.userRole ?? AuthService().currentUser?.role ?? 'coordinator';
     if (widget.initialNavIndex != null) {
       _currentNavIndex = widget.initialNavIndex!;
       _hasEvaluatedInitialRole = true;
-    } else if (widget.userRole != null) {
-      final role = widget.userRole!.toLowerCase();
+    } else {
+      final role = _activeRole.toLowerCase();
       if (role == 'warehouse') {
         _currentNavIndex = 3; // Direct warehouse operators straight to Dispatch
         _hasEvaluatedInitialRole = true;
@@ -73,6 +75,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final dynamic routeArgs = ModalRoute.of(context)?.settings.arguments;
       if (routeArgs is Map<String, dynamic>) {
         final role = routeArgs['role']?.toString().toLowerCase();
+        if (role != null) {
+          _activeRole = role;
+        }
         if (role == 'warehouse') {
           _currentNavIndex = (routeArgs['initialTab'] as int?) ?? 3;
         } else if (routeArgs['initialTab'] != null) {
@@ -96,7 +101,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.bone,
       body: _currentNavIndex == 1
-          ? const BookingsListScreen()
+          ? BookingsListScreen(
+              isEmbedded: true,
+              onBackToOverview: () {
+                setState(() => _currentNavIndex = 0);
+              },
+            )
           : _currentNavIndex == 2
               ? InventoryScreen(
                   isEmbedded: true,
@@ -112,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     )
                   : _currentNavIndex == 4
-                      ? _buildMoreView()
+                      ? _buildMoreView(displayName)
                       : SafeArea(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
@@ -868,7 +878,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMoreView() {
+  Widget _buildMoreView(String displayName) {
+    final currentUser = AuthService().currentUser;
+    final email = currentUser?.email.isNotEmpty == true
+        ? currentUser!.email
+        : '${displayName.toLowerCase().replaceAll(' ', '.')}@rentflow.ops';
+
+    final normalizedRole = AuthService.normalizeRole(_activeRole);
+    final String roleBadgeText;
+    final Color roleBadgeColor;
+    final Color roleBadgeBg;
+    if (normalizedRole == 'admin') {
+      roleBadgeText = 'ADMINISTRATOR';
+      roleBadgeColor = AppColors.inkBlack;
+      roleBadgeBg = AppColors.bone;
+    } else if (normalizedRole == 'warehouse') {
+      roleBadgeText = 'WAREHOUSE LEAD';
+      roleBadgeColor = AppColors.warning;
+      roleBadgeBg = AppColors.warningSubtle;
+    } else {
+      roleBadgeText = 'EVENT COORDINATOR';
+      roleBadgeColor = AppColors.burntCopper;
+      roleBadgeBg = AppColors.copperSubtle;
+    }
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
@@ -906,7 +939,144 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 18),
+
+            // User Profile Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.softStone),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.burntCopper,
+                    child: Text(
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : 'O',
+                      style: AppTextStyles.cardTitle.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              displayName,
+                              style: AppTextStyles.cardTitle.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: roleBadgeBg,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                roleBadgeText,
+                                style: AppTextStyles.monoLabel.copyWith(
+                                  fontSize: 8.5,
+                                  color: roleBadgeColor,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          email,
+                          style: AppTextStyles.monoLabel.copyWith(
+                            fontSize: 11,
+                            color: AppColors.slate,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'North Zone Dispatch • Station #04',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontSize: 10.5,
+                            color: AppColors.inkBlack,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Interactive Examiner Role Switcher
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.inkBlack,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.swap_horiz_rounded, color: AppColors.burntCopper, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'EXAMINER DEMO: SWITCH ACTIVE ROLE',
+                        style: AppTextStyles.monoLabel.copyWith(
+                          color: AppColors.bone,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Toggle operational persona to test role-specific landing and access.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.slate,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildRoleSwitchChip('Coordinator', 'coordinator', Icons.event_note_rounded),
+                      const SizedBox(width: 8),
+                      _buildRoleSwitchChip('Warehouse', 'warehouse', Icons.local_shipping_rounded),
+                      const SizedBox(width: 8),
+                      _buildRoleSwitchChip('Admin', 'admin', Icons.admin_panel_settings_rounded),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
+
+            Text(
+              'FACILITY CONFIGURATION',
+              style: AppTextStyles.monoLabel.copyWith(
+                fontSize: 10.5,
+                color: AppColors.slate,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
             _buildConfigOption(Icons.warehouse_outlined, 'Warehouse Fleet & Bays', 'Manage loading dock bays, rack coordinates, and cases'),
             _buildConfigOption(Icons.handyman_outlined, 'Maintenance & Bench Checks', 'Equipment inspection schedules, test reports, and repairs'),
             _buildConfigOption(Icons.badge_outlined, 'Staff Access & Crew Roles', 'Permissions for Coordinators, Dispatchers, and Leads'),
@@ -925,6 +1095,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleSwitchChip(String label, String roleKey, IconData icon) {
+    final isSelected = AuthService.normalizeRole(_activeRole) == roleKey;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _activeRole = roleKey;
+            final currentUser = AuthService().currentUser;
+            if (currentUser != null) {
+              AuthService().setCurrentUser(currentUser.copyWith(role: roleKey));
+            }
+            AuthService().setUserRole(currentUser?.id ?? 'active_user', roleKey);
+            if (roleKey == 'warehouse') {
+              _currentNavIndex = 3; // Direct warehouse operators straight to Dispatch
+            } else {
+              _currentNavIndex = 0; // Direct coordinator / admin to Overview
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.inkBlack,
+              content: Text(
+                'Switched role to $label (${roleKey == 'warehouse' ? 'Landed on Dispatch' : 'Landed on Overview'})',
+                style: const TextStyle(color: AppColors.bone),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.burntCopper : AppColors.inkBlack,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? AppColors.burntCopper : AppColors.softStone.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, size: 16, color: isSelected ? Colors.white : AppColors.bone),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: AppTextStyles.monoLabel.copyWith(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : AppColors.bone,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

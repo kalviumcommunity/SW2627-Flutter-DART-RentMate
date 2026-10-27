@@ -67,6 +67,26 @@ class AuthUser {
       role: role,
     );
   }
+
+  AuthUser copyWith({
+    String? id,
+    String? email,
+    String? displayName,
+    String? photoUrl,
+    String? accessToken,
+    User? firebaseUser,
+    String? role,
+  }) {
+    return AuthUser(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
+      accessToken: accessToken ?? this.accessToken,
+      firebaseUser: firebaseUser ?? this.firebaseUser,
+      role: role ?? this.role,
+    );
+  }
 }
 
 /// Production Authentication Service for RentFlow handling Google OAuth via Firebase.
@@ -83,6 +103,14 @@ class AuthService {
   );
 
   AuthUser? _currentUser;
+
+  /// Sets the active current user in-memory and caches the normalized role.
+  void setCurrentUser(AuthUser? user) {
+    _currentUser = user;
+    if (user != null && user.role.isNotEmpty) {
+      _roleMemoryCache[user.id.toLowerCase().trim()] = normalizeRole(user.role);
+    }
+  }
 
   /// Returns true if Firebase has been initialized in the current runtime.
   bool get isFirebaseInitialized => Firebase.apps.isNotEmpty;

@@ -230,6 +230,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       case 'DISPATCHED':
       case 'ON STAGE':
         return 3;
+      case 'RETURNED':
       case 'COMPLETED':
       case 'AWAITING RETURN':
         return 4;
@@ -266,9 +267,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         if (matchedSku != null) {
           setState(() {
             _loadedSkus.add(matchedSku!);
-            if (_loadedSkus.length == _effectiveItems.length && _currentStatus == 'PACKING') {
-              _currentStatus = 'READY';
-              BookingRepository().updateBookingStatus(widget.bookingId, 'READY');
+            if (_loadedSkus.length == _effectiveItems.length) {
+              if (_currentStatus == 'PACKING' || _currentStatus == 'CONFIRMED') {
+                _currentStatus = 'READY';
+                BookingRepository().updateBookingStatus(widget.bookingId, 'READY');
+              }
+            } else if (_currentStatus == 'CONFIRMED') {
+              _currentStatus = 'PACKING';
+              BookingRepository().updateBookingStatus(widget.bookingId, 'PACKING');
             }
           });
           BookingRepository().updateBookingChecklist(widget.bookingId, _loadedSkus.toList());
@@ -882,7 +888,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               _buildTimelineLine(step >= 2),
               _buildTimelineStep('Ready', step >= 2, step == 2),
               _buildTimelineLine(step >= 3),
-              _buildTimelineStep('Dispatched', step >= 3, step >= 3),
+              _buildTimelineStep('Dispatched', step >= 3, step == 3),
+              _buildTimelineLine(step >= 4),
+              _buildTimelineStep('Returned', step >= 4, step >= 4),
             ],
           ),
         ],
@@ -981,12 +989,24 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               setState(() {
                 if (val == true) {
                   _loadedSkus.add(sku);
-                  if (_loadedSkus.length == _effectiveItems.length && _currentStatus == 'PACKING') {
-                    _currentStatus = 'READY';
-                    BookingRepository().updateBookingStatus(widget.bookingId, 'READY');
+                  if (_loadedSkus.length == _effectiveItems.length) {
+                    if (_currentStatus == 'PACKING' || _currentStatus == 'CONFIRMED') {
+                      _currentStatus = 'READY';
+                      BookingRepository().updateBookingStatus(widget.bookingId, 'READY');
+                    }
+                  } else if (_currentStatus == 'CONFIRMED') {
+                    _currentStatus = 'PACKING';
+                    BookingRepository().updateBookingStatus(widget.bookingId, 'PACKING');
                   }
                 } else {
                   _loadedSkus.remove(sku);
+                  if (_loadedSkus.isEmpty && _currentStatus == 'PACKING') {
+                    _currentStatus = 'CONFIRMED';
+                    BookingRepository().updateBookingStatus(widget.bookingId, 'CONFIRMED');
+                  } else if (_loadedSkus.length < _effectiveItems.length && _currentStatus == 'READY') {
+                    _currentStatus = 'PACKING';
+                    BookingRepository().updateBookingStatus(widget.bookingId, 'PACKING');
+                  }
                 }
               });
               BookingRepository().updateBookingChecklist(widget.bookingId, _loadedSkus.toList());

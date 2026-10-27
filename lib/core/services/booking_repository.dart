@@ -34,6 +34,12 @@ class BookingRepository {
     _initFirestoreListener();
   }
 
+  void resetToInitial() {
+    bookingsNotifier.value = List.from(_initialBookings);
+    isLoading = false;
+    errorMessage = null;
+  }
+
   void _initFirestoreListener() {
     if (AuthService().isFirebaseInitialized) {
       try {
@@ -61,6 +67,9 @@ class BookingRepository {
           onError: (e) {
             isLoading = false;
             errorMessage = e.toString();
+            if (bookingsNotifier.value.isEmpty) {
+              bookingsNotifier.value = List.from(_initialBookings);
+            }
             debugPrint('Firestore bookings subscription notice: $e');
           },
         );

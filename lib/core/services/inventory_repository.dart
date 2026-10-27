@@ -33,6 +33,12 @@ class InventoryRepository {
     _initFirestoreListener();
   }
 
+  void resetToInitial() {
+    itemsNotifier.value = List.from(_initialItems);
+    isLoading = false;
+    errorMessage = null;
+  }
+
   void _initFirestoreListener() {
     if (AuthService().isFirebaseInitialized) {
       try {
@@ -69,6 +75,9 @@ class InventoryRepository {
           onError: (e) {
             isLoading = false;
             errorMessage = e.toString();
+            if (itemsNotifier.value.isEmpty) {
+              itemsNotifier.value = List.from(_initialItems);
+            }
             debugPrint('Firestore equipment subscription notice: $e');
           },
         );

@@ -100,6 +100,34 @@ class AvailabilityService {
   /// Key: `${sku}_${dateKey}` -> Map with 'allocatedQuantity' and 'bookings'.
   final Map<String, Map<String, dynamic>> _mockAllocations = {};
 
+  /// Clears in-memory allocation ledger and seeds from current active bookings.
+  void resetAndSeedAllocations() {
+    _mockAllocations.clear();
+    _allocationsReconciled = false;
+    for (final b in _bookingRepo.bookings) {
+      if (b.status.toUpperCase() == 'CANCELLED' || b.status.toUpperCase() == 'COMPLETED') {
+        continue;
+      }
+      final sDate = b.startDate ?? b.normalizedStartDate;
+      final eDate = b.endDate ?? b.normalizedEndDate;
+      final days = generateRentalDays(sDate, eDate);
+
+      for (final item in b.items) {
+        final sku = (item['sku'] ?? item['id'] ?? '').toString().trim().toUpperCase();
+        final qty = (item['quantity'] ?? item['selectedQty'] ?? item['qty'] ?? 0) as int;
+        if (sku.isEmpty || qty <= 0) continue;
+
+        for (final day in days) {
+          final key = '${sku}_${formatDateKey(day)}';
+          final current = _mockAllocations[key] ?? {'allocatedQuantity': 0, 'bookings': <String, int>{}};
+          current['allocatedQuantity'] = ((current['allocatedQuantity'] as int?) ?? 0) + qty;
+          (current['bookings'] as Map<String, int>)[b.id] = qty;
+          _mockAllocations[key] = current;
+        }
+      }
+    }
+  }
+
   /// Lock for in-memory serialization during tests.
   Future<void>? _inMemoryLock;
 

@@ -5,6 +5,7 @@ import '../../core/routes/app_routes.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../widgets/apple_sign_in_sheet.dart';
 import '../../widgets/rentflow_button.dart';
 import '../../widgets/rentflow_text_field.dart';
 
@@ -306,6 +307,54 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleAppleSignIn() async {
+    String initialName = 'Mayank';
+    if (_emailController.text.isNotEmpty && _emailController.text.contains('@')) {
+      final prefix = _emailController.text.split('@').first;
+      initialName = prefix.isNotEmpty
+          ? prefix[0].toUpperCase() + prefix.substring(1)
+          : 'Mayank';
+    }
+
+    final result = await AppleSignInSheet.show(
+      context,
+      initialName: initialName,
+      initialEmail: _emailController.text.contains('@')
+          ? _emailController.text
+          : 'mayank.sharma@icloud.com',
+      initialRole: 'coordinator',
+    );
+
+    if (result != null && mounted) {
+      final user = await _authService.signInWithApple(
+        name: result.displayName,
+        email: result.email,
+        role: result.role,
+        isPrivateRelay: result.isPrivateRelay,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.inkBlack,
+          content: Text(
+            'Signed in with Apple ID: ${user?.displayName} (${user?.email})',
+            style: const TextStyle(color: AppColors.bone),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.dashboard,
+        arguments: {
+          'userName': user?.displayName ?? 'Apple Operator',
+          'role': user?.role ?? 'coordinator',
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -541,14 +590,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         size: 20,
                         color: AppColors.inkBlack,
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Apple ID authentication is currently in development.'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      onPressed: _handleAppleSignIn,
                     ),
                     const SizedBox(height: 26),
 

@@ -3,13 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rentflow/core/models/booking_item.dart';
 import 'package:rentflow/core/models/equipment_item.dart';
 import 'package:rentflow/core/routes/app_routes.dart';
+import 'package:rentflow/core/services/auth_service.dart';
 import 'package:rentflow/core/services/availability_service.dart';
 import 'package:rentflow/core/services/booking_repository.dart';
 import 'package:rentflow/core/services/inventory_repository.dart';
 import 'package:rentflow/core/theme/app_theme.dart';
+import 'package:rentflow/main.dart';
 import 'package:rentflow/screens/bookings/booking_details_screen.dart';
 import 'package:rentflow/screens/bookings/create_booking_screen.dart';
 import 'package:rentflow/screens/inventory/inventory_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -194,6 +197,57 @@ void main() {
       expect(found, isNotNull);
       expect(found!['name'], 'Genelec Studio Monitor');
       expect(found['total'], 6);
+    });
+
+    test('Apple ID Authentication: establishes authenticated session with Private Relay support', () async {
+      final authService = AuthService();
+      final user = await authService.signInWithApple(
+        name: 'Mayank Sharma',
+        email: 'mayank_92kx@privaterelay.appleid.com',
+        role: 'coordinator',
+        isPrivateRelay: true,
+      );
+
+      expect(user, isNotNull);
+      expect(user!.displayName, 'Mayank Sharma');
+      expect(user.email.endsWith('@privaterelay.appleid.com'), isTrue);
+      expect(authService.currentUser?.email, 'mayank_92kx@privaterelay.appleid.com');
+      expect(authService.isAuthenticated, isTrue);
+    });
+
+    testWidgets('Apple ID Modal: clicking Continue with Apple ID opens native Apple sheet',
+        (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(const RentFlowApp());
+      await tester.pumpAndSettle();
+
+      // Tap Continue with Apple ID
+      final appleBtn = find.text('Continue with Apple ID');
+      expect(appleBtn, findsOneWidget);
+      await tester.ensureVisible(appleBtn);
+      await tester.tap(appleBtn);
+      await tester.pumpAndSettle();
+
+      // Verify Apple sheet renders
+      expect(find.text('Sign in with Apple'), findsOneWidget);
+      expect(find.text('Share My Email'), findsOneWidget);
+      expect(find.text('Hide My Email'), findsOneWidget);
+      expect(find.text('PRIVATE RELAY'), findsOneWidget);
+
+      // Confirm with Apple
+      await tester.tap(find.text('Continue with Apple'));
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
+
+      // Verify navigation to dashboard
+      expect(find.text('Hello Mayank'), findsOneWidget);
     });
   });
 }

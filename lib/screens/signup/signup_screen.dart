@@ -91,16 +91,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     final normalizedRole = AuthService.normalizeRole(_selectedRole);
     final email = _emailController.text.trim();
+    final userName = _nameController.text.trim().isNotEmpty
+        ? _nameController.text.trim()
+        : AppConstants.coordinatorName;
+
     _authService.setUserRole(email, normalizedRole);
 
     // Registration transition into dashboard
-    Future.delayed(const Duration(milliseconds: 600), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() => _isLoading = false);
-        final userName = _nameController.text.trim().isNotEmpty
-            ? _nameController.text.trim()
-            : AppConstants.coordinatorName;
-
         Navigator.of(context).pushReplacementNamed(
           AppRoutes.dashboard,
           arguments: {

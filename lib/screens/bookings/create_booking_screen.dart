@@ -1,7 +1,7 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/models/booking_item.dart';
+import '../../core/models/equipment_item.dart';
 import '../../core/services/availability_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -32,6 +32,36 @@ class EquipmentCatalogItem {
     required this.icon,
     this.selectedQty = 0,
   });
+
+  factory EquipmentCatalogItem.fromEquipmentItem(EquipmentItem item, {int selectedQty = 0}) {
+    return EquipmentCatalogItem(
+      id: item.id,
+      name: item.name,
+      sku: item.sku,
+      category: item.category,
+      totalQty: item.total,
+      availableQty: item.available,
+      dailyRate: item.dailyRate,
+      icon: item.icon ?? Icons.inventory_2_outlined,
+      selectedQty: selectedQty,
+    );
+  }
+
+  EquipmentItem toEquipmentItem() {
+    return EquipmentItem(
+      id: id,
+      sku: sku,
+      name: name,
+      category: category,
+      total: totalQty,
+      available: availableQty,
+      deployed: 0,
+      dailyRate: dailyRate,
+      status: 'IN WAREHOUSE',
+      specs: '',
+      icon: icon,
+    );
+  }
 }
 
 /// Create Booking Multi-Step Wizard (RentFlow Section 5.5 - 5.8).
@@ -154,7 +184,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   }
 
   // Calculation helpers
-  int get _rentalDays => math.max(1, _endDate.difference(_startDate).inDays);
+  int get _rentalDays {
+    final start = DateTime(_startDate.year, _startDate.month, _startDate.day);
+    final end = DateTime(_endDate.year, _endDate.month, _endDate.day);
+    if (end.isBefore(start)) return 1;
+    return end.difference(start).inDays + 1;
+  }
 
   int get _totalSelectedItems =>
       _catalog.fold(0, (sum, item) => sum + item.selectedQty);
@@ -448,6 +483,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                       setState(() {
                         _startDate = picked;
                         if (pickedTime != null) _dispatchTime = pickedTime;
+                        // Auto-adjust end date if start date is picked after end date
+                        if (_startDate.isAfter(_endDate)) {
+                          _endDate = _startDate.add(const Duration(days: 1));
+                        }
                       });
                     }
                   },
@@ -1248,6 +1287,18 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Please enter event title, client name, and venue to continue.'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final startCal = DateTime(_startDate.year, _startDate.month, _startDate.day);
+                        final endCal = DateTime(_endDate.year, _endDate.month, _endDate.day);
+                        if (endCal.isBefore(startCal)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Return date cannot be earlier than dispatch date.'),
                               duration: Duration(seconds: 2),
                             ),
                           );

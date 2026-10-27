@@ -61,7 +61,8 @@ class BookingItem {
   /// Checks if this booking overlaps with the specified date range.
   /// Convention: Both start and end dates are inclusive for event rental days.
   bool overlapsWith(DateTime start, DateTime end) {
-    if (status.toUpperCase() == 'CANCELLED') return false;
+    final upperStatus = status.toUpperCase();
+    if (upperStatus == 'CANCELLED' || upperStatus == 'COMPLETED') return false;
 
     final normStart = DateTime(start.year, start.month, start.day);
     final normEnd = DateTime(end.year, end.month, end.day);

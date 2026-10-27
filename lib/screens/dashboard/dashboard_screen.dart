@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/booking_repository.dart';
 import '../../core/services/inventory_repository.dart';
 import '../../core/services/seed_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -555,15 +556,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BookingDetailsScreen(
-              eventTitle: title,
-              status: status.toUpperCase(),
-            ),
-          ),
+        // Resolve booking from repository or use dynamic event fields
+        final cleanTitle = title.toLowerCase().replaceAll(' ', '');
+        final matchedBooking = BookingRepository().bookings.cast<BookingItem?>().firstWhere(
+          (b) => b != null && (b.eventTitle.toLowerCase().replaceAll(' ', '').contains(cleanTitle) ||
+                 cleanTitle.contains(b.eventTitle.toLowerCase().replaceAll(' ', ''))),
+          orElse: () => null,
         );
+
+        if (matchedBooking != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailsScreen(
+                bookingId: matchedBooking.id,
+                eventTitle: matchedBooking.eventTitle,
+                clientName: matchedBooking.clientName,
+                clientPhone: matchedBooking.phoneNumber ?? '+91 98765 43210',
+                venue: matchedBooking.venue,
+                dates: matchedBooking.date,
+                status: matchedBooking.status,
+                totalItems: matchedBooking.unitsCount,
+                grandTotal: matchedBooking.totalAmount,
+                category: matchedBooking.category,
+                manifestItems: matchedBooking.items,
+              ),
+            ),
+          );
+        } else {
+          final idSuffix = title.hashCode.abs() % 9000 + 1000;
+          final fallbackCategory = title.toLowerCase().contains('conference') || title.toLowerCase().contains('tech')
+              ? 'Corporate'
+              : (title.toLowerCase().contains('sangeet') ? 'Sangeet' : 'Wedding');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingDetailsScreen(
+                bookingId: 'BK-$idSuffix',
+                eventTitle: title,
+                status: status.toUpperCase(),
+                category: fallbackCategory,
+              ),
+            ),
+          );
+        }
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -1049,10 +1085,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Toggle operational persona to test role-specific landing and access.',
+                    'Toggle operational persona to test role-specific landing and access. (Sandbox Mode: Firestore security rules validate production privileges)',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.slate,
-                      fontSize: 10.5,
+                      fontSize: 10,
                     ),
                   ),
                   const SizedBox(height: 12),

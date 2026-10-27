@@ -81,6 +81,225 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  void _showAddEquipmentSheet(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final skuController = TextEditingController();
+    final qtyController = TextEditingController(text: '4');
+    final rateController = TextEditingController(text: '1200');
+    final bayController = TextEditingController(text: 'BAY-01-A');
+    String selectedCat = 'Sound';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.add_box_rounded, color: AppColors.burntCopper, size: 22),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Add Fleet Equipment',
+                                style: AppTextStyles.brandTitle.copyWith(fontSize: 18),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: nameController,
+                        style: AppTextStyles.bodyMedium,
+                        decoration: InputDecoration(
+                          labelText: 'Equipment Name *',
+                          hintText: 'e.g. Shure ULXD4D Wireless Receiver',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: skuController,
+                              style: AppTextStyles.monoData.copyWith(fontSize: 13),
+                              decoration: InputDecoration(
+                                labelText: 'SKU / Barcode *',
+                                hintText: 'SND-SHURE-ULXD',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedCat,
+                              decoration: InputDecoration(
+                                labelText: 'Category',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'Sound', child: Text('Sound')),
+                                DropdownMenuItem(value: 'Lighting', child: Text('Lighting')),
+                                DropdownMenuItem(value: 'Visuals', child: Text('Visuals')),
+                                DropdownMenuItem(value: 'Staging', child: Text('Staging')),
+                                DropdownMenuItem(value: 'Power', child: Text('Power')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setSheetState(() => selectedCat = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: qtyController,
+                              keyboardType: TextInputType.number,
+                              style: AppTextStyles.monoData,
+                              decoration: InputDecoration(
+                                labelText: 'Total Units *',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              validator: (val) {
+                                final n = int.tryParse(val ?? '');
+                                return (n == null || n <= 0) ? 'Must be > 0' : null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextFormField(
+                              controller: rateController,
+                              keyboardType: TextInputType.number,
+                              style: AppTextStyles.monoData,
+                              decoration: InputDecoration(
+                                labelText: 'Daily Rate (₹) *',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              validator: (val) {
+                                final n = double.tryParse(val ?? '');
+                                return (n == null || n <= 0) ? 'Must be > 0' : null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: bayController,
+                        style: AppTextStyles.bodyMedium,
+                        decoration: InputDecoration(
+                          labelText: 'Storage Rack / Bay',
+                          hintText: 'BAY-02-B',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (formKey.currentState?.validate() ?? false) {
+                              final name = nameController.text.trim();
+                              final sku = skuController.text.trim().toUpperCase();
+                              final qty = int.parse(qtyController.text.trim());
+                              final rate = double.parse(rateController.text.trim());
+                              final bay = bayController.text.trim().isNotEmpty
+                                  ? bayController.text.trim().toUpperCase()
+                                  : 'BAY-01-A';
+                              final fcClean = sku.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+                              final fc = 'FC-${fcClean.length >= 4 ? fcClean.substring(0, 4) : fcClean.padRight(4, '0')}';
+
+                              final newItem = {
+                                'id': sku,
+                                'sku': sku,
+                                'name': name,
+                                'category': selectedCat,
+                                'flightCase': fc,
+                                'rackBay': bay,
+                                'total': qty,
+                                'available': qty,
+                                'deployed': 0,
+                                'maintenance': 0,
+                                'totalQuantity': qty,
+                                'rentableQuantity': qty,
+                                'dailyRate': rate,
+                                'status': 'IN WAREHOUSE',
+                                'specs': 'Registered Fleet Asset',
+                                'icon': Icons.inventory_2_outlined,
+                              };
+
+                              _inventoryRepo.addEquipment(newItem);
+                              Navigator.pop(context);
+                              setState(() {});
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppColors.inkBlack,
+                                  content: Text(
+                                    'Registered $name ($sku) with $qty units in $bay.',
+                                    style: const TextStyle(color: AppColors.bone),
+                                  ),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.burntCopper,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Add to Warehouse Fleet', style: TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   int get _totalAssetsCount =>
       _inventoryItems.fold(0, (sum, item) => sum + (item['total'] as int));
 
@@ -571,19 +790,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   /// Individual Industrial Equipment Card
   Widget _buildEquipmentCard(Map<String, dynamic> item) {
-    final String sku = item['sku'];
-    final String name = item['name'];
-    final String category = item['category'];
-    final String flightCase = item['flightCase'];
-    final String rackBay = item['rackBay'];
-    final int total = item['total'];
-    final int available = item['available'];
-    final int deployed = item['deployed'];
-    final String status = item['status'];
-    final Color statusColor = item['statusColor'];
-    final Color statusBg = item['statusBg'];
-    final String specs = item['specs'];
-    final double progressRatio = item['progressRatio'];
+    final String sku = (item['sku'] ?? '').toString();
+    final String name = (item['name'] ?? sku).toString();
+    final String category = (item['category'] ?? 'Sound').toString();
+    final String flightCase = (item['flightCase'] ?? 'FC-GEN-01').toString();
+    final String rackBay = (item['rackBay'] ?? 'BAY-01-A').toString();
+    final int total = (item['total'] as num?)?.toInt() ?? 0;
+    final int available = (item['available'] as num?)?.toInt() ?? total;
+    final int deployed = (item['deployed'] as num?)?.toInt() ?? 0;
+    final String status = (item['status'] ?? 'IN WAREHOUSE').toString();
+    final Color statusColor = item['statusColor'] as Color? ??
+        (status == 'DEPLOYED'
+            ? AppColors.burntCopper
+            : (status == 'MAINTENANCE' ? AppColors.danger : AppColors.success));
+    final Color statusBg = item['statusBg'] as Color? ??
+        (status == 'DEPLOYED'
+            ? AppColors.copperSubtle
+            : (status == 'MAINTENANCE' ? AppColors.dangerSubtle : AppColors.successSubtle));
+    final String specs = (item['specs'] ?? 'Standard Fleet Unit').toString();
+    final double progressRatio = (item['progressRatio'] as num?)?.toDouble() ??
+        (total > 0 ? (deployed / total).clamp(0.0, 1.0) : 0.0);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -886,14 +1112,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('New Asset Intake dialog opened.'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showAddEquipmentSheet(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.burntCopper,
                     foregroundColor: Colors.white,

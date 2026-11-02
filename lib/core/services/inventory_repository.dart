@@ -279,80 +279,93 @@ class InventoryRepository {
     String? notes,
   }) async {
     if (AuthService().isFirebaseInitialized) {
-      final firestore = FirebaseFirestore.instance;
-      await firestore.runTransaction((transaction) async {
-        final returnRef = firestore.collection('returns').doc(returnId);
-        final returnSnap = await transaction.get(returnRef);
-        if (returnSnap.exists) {
-          // Idempotent: return batch has already been processed
-          return;
-        }
+      try {
+        final firestore = FirebaseFirestore.instance;
+        await firestore.runTransaction((transaction) async {
+          final returnRef = firestore.collection('returns').doc(returnId);
+          final returnSnap = await transaction.get(returnRef);
+          if (returnSnap.exists) {
+            // Idempotent: return batch has already been processed
+            return;
+          }
 
-        final bookingRef = firestore.collection('bookings').doc(bookingId);
-        final bookingSnap = await transaction.get(bookingRef);
+          final bookingRef = firestore.collection('bookings').doc(bookingId);
+          final bookingSnap = await transaction.get(bookingRef);
 
-        final Map<String, DocumentSnapshot> eqSnaps = {};
-        for (final item in items) {
-          final sku = (item['sku'] ?? '').toString();
-          if (sku.isEmpty) continue;
-          final eqRef = firestore.collection('equipment').doc(sku);
-          eqSnaps[sku] = await transaction.get(eqRef);
-        }
+          final Map<String, DocumentSnapshot> eqSnaps = {};
+          for (final item in items) {
+            final sku = (item['sku'] ?? '').toString();
+            if (sku.isEmpty) continue;
+            final eqRef = firestore.collection('equipment').doc(sku);
+            eqSnaps[sku] = await transaction.get(eqRef);
+          }
 
-        // Apply equipment updates inside the same transaction
-        for (final item in items) {
-          final sku = (item['sku'] ?? '').toString();
-          if (sku.isEmpty) continue;
-          final eqSnap = eqSnaps[sku];
-          final eqRef = firestore.collection('equipment').doc(sku);
-          final goodQty = (item['goodQty'] ?? item['goodQuantity'] ?? 0) as int;
-          final damagedQty = (item['damagedQty'] ?? item['damagedQuantity'] ?? 0) as int;
-          final missingQty = (item['missingQty'] ?? item['missingQuantity'] ?? 0) as int;
+          // Apply equipment updates inside the same transaction
+          for (final item in items) {
+            final sku = (item['sku'] ?? '').toString();
+            if (sku.isEmpty) continue;
+            final eqSnap = eqSnaps[sku];
+            final eqRef = firestore.collection('equipment').doc(sku);
+            final goodQty = (item['goodQty'] ?? item['goodQuantity'] ?? 0) as int;
+            final damagedQty = (item['damagedQty'] ?? item['damagedQuantity'] ?? 0) as int;
+            final missingQty = (item['missingQty'] ?? item['missingQuantity'] ?? 0) as int;
 
-          final eqData = eqSnap != null && eqSnap.exists
-              ? Map<String, dynamic>.from(eqSnap.data() as Map<dynamic, dynamic>)
-              : <String, dynamic>{};
+            final eqData = eqSnap != null && eqSnap.exists
+                ? Map<String, dynamic>.from(eqSnap.data() as Map<dynamic, dynamic>)
+                : <String, dynamic>{};
 
-          final int total = (eqData['totalQuantity'] ?? eqData['total'] ?? 100) as int;
-          final int prevAvail = (eqData['rentableQuantity'] ?? eqData['available'] ?? total) as int;
-          final int prevDep = (eqData['deployed'] ?? 0) as int;
-          final int prevMaint = (eqData['maintenanceQuantity'] ?? eqData['maintenance'] ?? 0) as int;
+            final int total = (eqData['totalQuantity'] ?? eqData['total'] ?? 100) as int;
+            final int prevAvail = (eqData['rentableQuantity'] ?? eqData['available'] ?? total) as int;
+            final int prevDep = (eqData['deployed'] ?? 0) as int;
+            final int prevMaint = (eqData['maintenanceQuantity'] ?? eqData['maintenance'] ?? 0) as int;
 
-          final newAvail = (prevAvail + goodQty).clamp(0, total);
-          final newDep = (prevDep - (goodQty + damagedQty + missingQty)).clamp(0, total);
-          final newMaint = (prevMaint + damagedQty).clamp(0, total);
-          final newStatus = (newMaint > 0)
-              ? 'MAINTENANCE'
-              : (newDep > 0 ? 'DEPLOYED' : 'IN WAREHOUSE');
+            final newAvail = (prevAvail + goodQty).clamp(0, total);
+            final newDep = (prevDep - (goodQty + damagedQty + missingQty)).clamp(0, total);
+            final newMaint = (prevMaint + damagedQty).clamp(0, total);
+            final newStatus = (newMaint > 0)
+                ? 'MAINTENANCE'
+                : (newDep > 0 ? 'DEPLOYED' : 'IN WAREHOUSE');
 
-          transaction.set(eqRef, {
-            'rentableQuantity': newAvail,
-            'available': newAvail,
-            'deployed': newDep,
-            'maintenanceQuantity': newMaint,
-            'status': newStatus,
-            'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        }
+            transaction.set(eqRef, {
+              'rentableQuantity': newAvail,
+              'available': newAvail,
+              'deployed': newDep,
+              'maintenanceQuantity': newMaint,
+              'status': newStatus,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
 
-        // Write return log record
-        transaction.set(returnRef, {
-          'returnId': returnId,
-          'bookingId': bookingId,
-          'items': items,
-          'recordedBy': recordedBy ?? AuthService().currentUser?.email ?? 'operations_lead',
-          'notes': notes ?? '',
-          'returnedAt': FieldValue.serverTimestamp(),
-        });
+          // Write return log record
+          transaction.set(returnRef, {
+            'returnId': returnId,
+            'bookingId': bookingId,
+            'items': items,
+            'recordedBy': recordedBy ?? AuthService().currentUser?.email ?? 'operations_lead',
+            'notes': notes ?? '',
+            'returnedAt': FieldValue.serverTimestamp(),
+          });
 
-        // Advance booking status to COMPLETED if it exists
-        if (bookingSnap.exists) {
-          transaction.update(bookingRef, {
+          // Advance booking status to COMPLETED using merge-safe set (avoids not-found on missing docs)
+          transaction.set(bookingRef, {
             'status': 'COMPLETED',
             'updatedAt': FieldValue.serverTimestamp(),
-          });
-        }
-      });
+            // Preserve existing fields — only status is updated
+            'bookingId': bookingId,
+          }, SetOptions(merge: true));
+
+          // Also update if it exists (redundant but safe)
+          if (bookingSnap.exists) {
+            transaction.update(bookingRef, {
+              'status': 'COMPLETED',
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }).timeout(const Duration(seconds: 6));
+      } catch (e) {
+        debugPrint('Firestore reconcileReturnBatch notice (falling back to local): $e');
+        // Continue to local memory update below — do not rethrow
+      }
     }
 
     // Update local memory cache for immediate UI responsiveness

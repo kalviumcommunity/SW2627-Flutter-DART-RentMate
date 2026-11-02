@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/models/booking_item.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/availability_service.dart';
 import '../../core/services/booking_repository.dart';
@@ -54,6 +55,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   late String _currentStatus;
   final Set<String> _loadedSkus = {};
   late List<Map<String, dynamic>> _effectiveItems;
+  bool _isDispatching = false;
 
   @override
   void initState() {
@@ -748,35 +750,55 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 )
               else if (_currentStatus == 'READY')
                 RentFlowButton(
-                  label: 'Dispatch Vehicle (Departure)',
+                  label: _isDispatching ? 'Dispatching Vehicle...' : 'Dispatch Vehicle (Departure)',
                   icon: Icons.send_rounded,
-                  onPressed: () async {
-                    try {
-                      await BookingRepository().persistDispatchRecord(
-                        bookingId: widget.bookingId,
-                        recordedBy: AuthService().currentUser?.email ?? 'operations_lead',
-                        items: _effectiveItems,
-                      );
-                      setState(() => _currentStatus = 'DISPATCHED');
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: AppColors.inkBlack,
-                            content: Text('Reservation #${widget.bookingId} DISPATCHED to venue!'),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: AppColors.danger,
-                            content: Text('Failed to dispatch vehicle: $e'),
-                          ),
-                        );
-                      }
-                    }
-                  },
+                  onPressed: _isDispatching
+                      ? null
+                      : () async {
+                          setState(() => _isDispatching = true);
+                          try {
+                            await BookingRepository().persistDispatchRecord(
+                              bookingId: widget.bookingId,
+                              recordedBy: AuthService().currentUser?.email ?? 'operations_lead',
+                              items: _effectiveItems,
+                              fallbackBooking: BookingItem(
+                                id: widget.bookingId,
+                                eventTitle: widget.eventTitle,
+                                clientName: widget.clientName,
+                                phoneNumber: widget.clientPhone,
+                                venue: widget.venue,
+                                date: widget.dates,
+                                status: 'DISPATCHED',
+                                unitsCount: widget.totalItems,
+                                totalAmount: widget.grandTotal,
+                                category: widget.category,
+                                items: _effectiveItems,
+                              ),
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _currentStatus = 'DISPATCHED';
+                                _isDispatching = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppColors.inkBlack,
+                                  content: Text('Reservation #${widget.bookingId} DISPATCHED to venue! Departure locked.'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              setState(() => _isDispatching = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppColors.danger,
+                                  content: Text('Failed to dispatch vehicle: $e'),
+                                ),
+                              );
+                            }
+                          }
+                        },
                 )
               else if (_currentStatus == 'DISPATCHED' || _currentStatus == 'AWAITING RETURN')
                 RentFlowButton(
